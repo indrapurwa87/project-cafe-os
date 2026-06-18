@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ─── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-surface-warm text-ink-primary;
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* Remove default input/button styles */
+  input, textarea, select, button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-ink-placeholder rounded-full; }
+
+  /* Hide number input spinners */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+}
+
+/* ─── Components ─── */
+@layer components {
+  /* --- Buttons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-heading font-semibold
+           rounded-xl transition-all duration-200 select-none cursor-pointer
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 shadow-glow
+           px-5 py-3 text-base;
+  }
+  .btn-primary-lg {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 shadow-glow
+           px-6 py-4 text-lg w-full;
+  }
+  .btn-secondary {
+    @apply btn bg-surface-muted text-ink-primary hover:bg-brand-50 border border-ink-placeholder
+           px-5 py-3 text-base;
+  }
+  .btn-ghost {
+    @apply btn text-ink-secondary hover:bg-surface-muted px-4 py-2 text-sm;
+  }
+  .btn-danger {
+    @apply btn bg-red-500 text-white hover:bg-red-600 px-5 py-3 text-base;
+  }
+  .btn-icon {
+    @apply btn p-2.5 rounded-xl text-ink-secondary hover:bg-surface-muted;
+  }
+
+  /* --- Cards --- */
+  .card {
+    @apply bg-surface rounded-xl shadow-card;
+  }
+  .card-hover {
+    @apply card transition-shadow duration-200 hover:shadow-card-hover;
+  }
+
+  /* --- Inputs --- */
+  .input-base {
+    @apply w-full bg-surface border border-ink-placeholder/40 rounded-xl
+           px-4 py-3 text-ink-primary placeholder:text-ink-muted
+           outline-none transition-all duration-200
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+  }
+  .input-error {
+    @apply border-red-400 focus:border-red-400 focus:ring-red-400/20;
+  }
+
+  /* --- Badges --- */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .badge-new       { @apply badge bg-status-new-bg text-status-new; }
+  .badge-process   { @apply badge bg-status-process-bg text-status-process; }
+  .badge-ready     { @apply badge bg-status-ready-bg text-status-ready; }
+  .badge-done      { @apply badge bg-status-done-bg text-status-done; }
+  .badge-cancelled { @apply badge bg-status-cancelled-bg text-status-cancelled; }
+  .badge-brand     { @apply badge bg-brand-100 text-brand-700; }
+
+  /* --- Category chip --- */
+  .chip {
+    @apply px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap
+           transition-all duration-200 cursor-pointer;
+  }
+  .chip-active   { @apply chip bg-brand-500 text-white shadow-glow; }
+  .chip-inactive { @apply chip bg-surface text-ink-secondary hover:bg-brand-50 shadow-card-sm; }
+
+  /* --- Page containers --- */
+  .page-customer {
+    @apply min-h-dvh bg-surface-warm max-w-md mx-auto relative;
+  }
+  .page-admin {
+    @apply min-h-dvh bg-surface-muted;
+  }
+
+  /* --- Divider --- */
+  .divider { @apply border-t border-ink-placeholder/20; }
+
+  /* --- Loading skeleton --- */
+  .skeleton {
+    @apply bg-ink-placeholder/30 rounded-lg animate-pulse;
+  }
+}
+
+/* ─── Utilities ─── */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent;
+  }
+  .bg-gradient-brand {
+    @apply bg-gradient-to-r from-brand-500 to-brand-600;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .safe-pb { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
+}
