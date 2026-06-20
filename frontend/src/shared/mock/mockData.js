@@ -4,7 +4,7 @@
  */
 
 export const MOCK_CREDENTIALS = {
-  admin: { email: 'admin@cafe.com', password: 'admin123' },
+  admin: { email: 'admin', password: 'admin123' },
   kitchen: { pin: '123456' },
 }
 

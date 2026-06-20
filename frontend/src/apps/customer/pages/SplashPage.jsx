@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { MOCK_TABLE } from '@/shared/mock/mockData'
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
+import api from '@/shared/api/axios'
 
 export default function SplashPage() {
   const [searchParams] = useSearchParams()
@@ -11,16 +12,33 @@ export default function SplashPage() {
   const { name, rememberMe, setTable } = useCustomerStore()
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // Use mock table data — no API needed
-      const table = { ...MOCK_TABLE, id: tableParam || '1' }
-      setTable({ tableId: table.id, tableNumber: table.table_number })
-
-      if (rememberMe && name) {
-        navigate(`/menu/${table.id}`, { replace: true })
-      } else {
-        navigate(`/menu/${table.id}/identify`, { replace: true })
+    const fetchTableData = async () => {
+      const id = tableParam || '1'
+      try {
+        const response = await api.get(`/tables/${id}`)
+        const table = response.data
+        setTable({ tableId: table.id, tableNumber: table.table_number })
+        
+        if (rememberMe && name) {
+          navigate(`/menu/${table.id}`, { replace: true })
+        } else {
+          navigate(`/menu/${table.id}/identify`, { replace: true })
+        }
+      } catch (error) {
+        console.error('Failed to verify table from backend, using fallback:', error)
+        const table = { ...MOCK_TABLE, id: id }
+        setTable({ tableId: table.id, tableNumber: table.table_number })
+        
+        if (rememberMe && name) {
+          navigate(`/menu/${table.id}`, { replace: true })
+        } else {
+          navigate(`/menu/${table.id}/identify`, { replace: true })
+        }
       }
+    }
+
+    const timer = setTimeout(() => {
+      fetchTableData()
     }, 1500)
 
     return () => clearTimeout(timer)

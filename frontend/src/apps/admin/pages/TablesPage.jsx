@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { QrCode, Plus, Download } from 'lucide-react'
 import { QRCodeCanvas } from 'qrcode.react'
-import { MOCK_TABLES } from '@/shared/mock/mockData'
 import Modal from '@/shared/components/Modal'
 import Button from '@/shared/components/Button'
 import Input from '@/shared/components/Input'
 import { toast } from '@/shared/components/Toast'
 import { useForm } from 'react-hook-form'
 import { cn } from '@/shared/utils/cn'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '@/shared/api/axios'
 
 const BASE_URL = window.location.origin
 
@@ -52,7 +53,8 @@ function TableCard({ table, onShowQR }) {
 
 function QRModal({ table, onClose }) {
   if (!table) return null
-  const url = `${BASE_URL}/menu?table=${table.id}`
+  // QR URL points to menu/{tableId} — use table.id (numeric primary key)
+  const url = `${BASE_URL}/menu/${table.id}`
 
   const downloadQR = () => {
     const canvas = document.getElementById('qr-canvas')
@@ -97,22 +99,33 @@ function QRModal({ table, onClose }) {
 }
 
 export default function TablesPage() {
-  const [tables, setTables] = useState(MOCK_TABLES)
   const [addOpen, setAddOpen] = useState(false)
   const [qrTable, setQrTable] = useState(null)
   const { register, handleSubmit, reset } = useForm()
+  const queryClient = useQueryClient()
 
-  const handleAdd = (data) => {
-    const newTable = {
-      id: String(tables.length + 1),
-      table_number: Number(data.table_number),
-      capacity: Number(data.capacity) || 4,
-      status: 'available',
+  const { data: tables = [], isLoading } = useQuery({
+    queryKey: ['admin-tables'],
+    queryFn: async () => {
+      const res = await api.get('/tables')
+      return res.data
     }
-    setTables(prev => [...prev, newTable])
-    toast.success('Meja berhasil ditambahkan!')
-    setAddOpen(false); reset()
-  }
+  })
+
+  const addMutation = useMutation({
+    mutationFn: (data) => api.post('/tables', {
+      table_number: Number(data.table_number),
+      capacity: Number(data.capacity) || 4
+    }),
+    onSuccess: () => {
+      toast.success('Meja berhasil ditambahkan!')
+      queryClient.invalidateQueries({ queryKey: ['admin-tables'] })
+      setAddOpen(false); reset()
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Gagal menambahkan meja')
+  })
+
+  const handleAdd = (data) => addMutation.mutate(data)
 
   return (
     <div className="space-y-5 max-w-5xl">
@@ -126,11 +139,18 @@ export default function TablesPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {tables.map(table => (
-          <TableCard key={table.id} table={table} onShowQR={setQrTable} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16 text-ink-muted text-sm">
+          <span className="inline-block w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mr-2" />
+          Memuat data meja...
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {tables.map(table => (
+            <TableCard key={table.id} table={table} onShowQR={setQrTable} />
+          ))}
+        </div>
+      )}
 
       {/* Add Modal */}
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Tambah Meja Baru" size="sm">
@@ -140,7 +160,7 @@ export default function TablesPage() {
           <Input label="Kapasitas (orang)" type="number" placeholder="contoh: 4"
             {...register('capacity')} />
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1">Tambah Meja</Button>
+            <Button type="submit" className="flex-1" loading={addMutation.isPending}>Tambah Meja</Button>
             <Button type="button" variant="secondary" onClick={() => setAddOpen(false)}>Batal</Button>
           </div>
         </form>

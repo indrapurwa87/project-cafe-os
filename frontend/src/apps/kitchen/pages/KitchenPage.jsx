@@ -4,51 +4,8 @@ import { Bell, Volume2, VolumeX, Clock, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { MOCK_MENU, MOCK_CATEGORIES } from '@/shared/mock/mockData'
 import OrderTicket from '../components/OrderTicket'
-
-// Generate mock kitchen orders
-function generateMockOrders() {
-  return [
-    {
-      id: 'k-1', tableNumber: 3, customerName: 'Budi',
-      status: 'pending',
-      kitchenNote: 'Jangan terlalu pedas',
-      created_at: new Date(Date.now() - 2 * 60000).toISOString(),
-      items: [
-        { name: 'Nasi Goreng Spesial', quantity: 1, notes: 'Tanpa bawang' },
-        { name: 'Es Teh Manis', quantity: 2, notes: '' },
-      ],
-    },
-    {
-      id: 'k-2', tableNumber: 7, customerName: 'Siti',
-      status: 'pending',
-      kitchenNote: '',
-      created_at: new Date(Date.now() - 1 * 60000).toISOString(),
-      items: [
-        { name: 'Kopi Susu Gula Aren', quantity: 2, notes: 'Extra shot' },
-        { name: 'Roti Bakar Coklat', quantity: 1, notes: '' },
-      ],
-    },
-    {
-      id: 'k-3', tableNumber: 1, customerName: 'Ahmad',
-      status: 'processing',
-      kitchenNote: '',
-      created_at: new Date(Date.now() - 8 * 60000).toISOString(),
-      items: [
-        { name: 'Ayam Bakar Madu', quantity: 1, notes: '' },
-        { name: 'Jus Alpukat', quantity: 1, notes: 'Tanpa es' },
-      ],
-    },
-    {
-      id: 'k-4', tableNumber: 5, customerName: 'Dewi',
-      status: 'ready',
-      kitchenNote: '',
-      created_at: new Date(Date.now() - 15 * 60000).toISOString(),
-      items: [
-        { name: 'Matcha Latte', quantity: 1, notes: '' },
-      ],
-    },
-  ]
-}
+import api from '@/shared/api/axios'
+import { io } from 'socket.io-client'
 
 const TABS = [
   { key: 'pending',    label: 'Baru',   color: 'text-status-new' },
@@ -61,20 +18,70 @@ export default function KitchenPage() {
   const [activeTab, setActiveTab] = useState('pending')
   const [soundOn, setSoundOn] = useState(true)
   const [now, setNow] = useState(Date.now())
-  const [orders, setOrders] = useState(generateMockOrders())
+  const [orders, setOrders] = useState([])
 
-  // Tick every second
+  const playNotificationSound = () => {
+    if (soundOn) {
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav')
+        audio.volume = 0.5
+        audio.play()
+      } catch (err) {
+        console.error('Audio play blocked:', err)
+      }
+    }
+  }
+
+  const fetchOrders = async () => {
+    try {
+      const res = await api.get('/orders')
+      setOrders(res.data)
+    } catch (err) {
+      console.error('Failed to fetch kitchen orders:', err)
+    }
+  }
+
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
+    fetchOrders()
 
-  const updateStatus = (orderId, status) => {
-    setOrders(prev =>
-      status === 'done'
-        ? prev.filter(o => o.id !== orderId)
-        : prev.map(o => o.id === orderId ? { ...o, status } : o)
-    )
+    const socket = io()
+
+    socket.on('order:new', (newOrder) => {
+      setOrders(prev => {
+        if (prev.some(o => o.id === newOrder.id)) return prev
+        playNotificationSound()
+        return [newOrder, ...prev]
+      })
+    })
+
+    socket.on('order:status_changed', (data) => {
+      setOrders(prev => {
+        if (data.status === 'done') {
+          return prev.filter(o => o.id !== data.orderId)
+        }
+        return prev.map(o => o.id === data.orderId ? { ...o, status: data.status } : o)
+      })
+    })
+
+    const t = setInterval(() => setNow(Date.now()), 1000)
+
+    return () => {
+      clearInterval(t)
+      socket.disconnect()
+    }
+  }, [soundOn])
+
+  const updateStatus = async (orderId, status) => {
+    try {
+      await api.patch(`/orders/${orderId}/status`, { status })
+      setOrders(prev =>
+        status === 'done'
+          ? prev.filter(o => o.id !== orderId)
+          : prev.map(o => o.id === orderId ? { ...o, status } : o)
+      )
+    } catch (err) {
+      console.error('Failed to update status:', err)
+    }
   }
 
   const tabOrders = orders.filter(o => o.status === activeTab)

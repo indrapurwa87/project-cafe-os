@@ -1,42 +1,75 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
-import { MOCK_MENU, MOCK_CATEGORIES } from '@/shared/mock/mockData'
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, RefreshCw } from 'lucide-react'
 import { formatRupiah } from '@/shared/utils/format'
 import Modal from '@/shared/components/Modal'
 import Button from '@/shared/components/Button'
 import Input from '@/shared/components/Input'
 import { toast } from '@/shared/components/Toast'
 import { useForm } from 'react-hook-form'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '@/shared/api/axios'
 
 export default function MenuManagePage() {
-  const [menuItems, setMenuItems] = useState(MOCK_MENU)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const { register, handleSubmit, reset } = useForm()
+  const queryClient = useQueryClient()
 
-  const handleSave = (data) => {
-    if (editing) {
-      setMenuItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...data, price: Number(data.price) } : i))
-      toast.success('Menu diperbarui!')
-    } else {
-      const newItem = { ...data, id: `item-${Date.now()}`, price: Number(data.price), is_available: true, is_featured: false }
-      setMenuItems(prev => [...prev, newItem])
-      toast.success('Menu ditambahkan!')
+  const { data: categories = [], isLoading: catsLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await api.get('/menu/categories')
+      return res.data
     }
-    setModalOpen(false); setEditing(null); reset()
+  })
+
+  const { data: menuItems = [], isLoading } = useQuery({
+    queryKey: ['menu'],
+    queryFn: async () => {
+      const res = await api.get('/menu')
+      return res.data
+    }
+  })
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['menu'] })
   }
 
-  const toggleAvailability = (id) => {
-    setMenuItems(prev => prev.map(i => i.id === id ? { ...i, is_available: !i.is_available } : i))
-  }
+  const saveMutation = useMutation({
+    mutationFn: (data) => {
+      if (editing) {
+        return api.put(`/menu/${editing.id}`, { ...data, price: Number(data.price) })
+      }
+      return api.post('/menu', { ...data, price: Number(data.price) })
+    },
+    onSuccess: () => {
+      toast.success(editing ? 'Menu diperbarui!' : 'Menu ditambahkan!')
+      invalidate()
+      setModalOpen(false); setEditing(null); reset()
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Gagal menyimpan menu')
+  })
 
-  const handleDelete = (id) => {
-    if (confirm('Hapus menu ini?')) {
-      setMenuItems(prev => prev.filter(i => i.id !== id))
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, is_available }) => api.patch(`/menu/${id}/availability`, { is_available }),
+    onSuccess: () => {
+      toast.success('Status menu diperbarui')
+      invalidate()
+    },
+    onError: () => toast.error('Gagal mengubah status menu')
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/menu/${id}`),
+    onSuccess: () => {
       toast.success('Menu dihapus')
-    }
-  }
+      invalidate()
+    },
+    onError: () => toast.error('Gagal menghapus menu')
+  })
+
+  const handleSave = (data) => saveMutation.mutate(data)
 
   const openAdd = () => { setEditing(null); reset(); setModalOpen(true) }
   const openEdit = (item) => {
@@ -68,7 +101,14 @@ export default function MenuManagePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-placeholder/10">
-              {menuItems.map(item => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-ink-muted text-sm">
+                    <span className="inline-block w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mr-2" />
+                    Memuat menu...
+                  </td>
+                </tr>
+              ) : menuItems.map(item => (
                 <tr key={item.id} className="hover:bg-surface-muted transition-colors">
                   <td className="px-4 py-3">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-muted">
@@ -83,14 +123,14 @@ export default function MenuManagePage() {
                     <p className="text-xs text-ink-muted line-clamp-1 max-w-xs">{item.description}</p>
                   </td>
                   <td className="px-4 py-3 text-sm text-ink-secondary">
-                    {MOCK_CATEGORIES.find(c => c.id === item.category_id)?.name ?? '-'}
+                    {categories.find(c => c.id === item.category_id)?.name ?? '-'}
                   </td>
                   <td className="px-4 py-3 font-heading font-bold text-sm text-brand-600">
                     {formatRupiah(item.price)}
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => toggleAvailability(item.id)}
+                      onClick={() => toggleMutation.mutate({ id: item.id, is_available: !item.is_available })}
                       className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${
                         item.is_available ? 'text-status-ready' : 'text-ink-muted'
                       }`}
@@ -106,7 +146,10 @@ export default function MenuManagePage() {
                       <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-surface-muted rounded-lg text-ink-muted hover:text-brand-500">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(item.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-ink-muted hover:text-red-500">
+                      <button
+                        onClick={() => { if (confirm('Hapus menu ini?')) deleteMutation.mutate(item.id) }}
+                        className="p-1.5 hover:bg-red-50 rounded-lg text-ink-muted hover:text-red-500"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -125,7 +168,7 @@ export default function MenuManagePage() {
             <label className="text-sm font-semibold text-ink-secondary font-heading">Kategori <span className="text-brand-500">*</span></label>
             <select className="input-base" {...register('category_id', { required: true })}>
               <option value="">Pilih kategori...</option>
-              {MOCK_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <Input label="Harga (Rp)" type="number" required placeholder="35000" {...register('price', { required: true })} />
@@ -135,7 +178,9 @@ export default function MenuManagePage() {
           </div>
           <Input label="URL Foto" placeholder="https://..." {...register('image_url')} />
           <div className="flex gap-3 pt-2">
-            <Button type="submit" className="flex-1">{editing ? 'Simpan Perubahan' : 'Tambah Menu'}</Button>
+            <Button type="submit" className="flex-1" loading={saveMutation.isPending}>
+              {editing ? 'Simpan Perubahan' : 'Tambah Menu'}
+            </Button>
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Batal</Button>
           </div>
         </form>

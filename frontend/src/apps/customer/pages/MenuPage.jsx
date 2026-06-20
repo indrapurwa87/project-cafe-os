@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search } from 'lucide-react'
-import { MOCK_CATEGORIES, MOCK_MENU } from '@/shared/mock/mockData'
+
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import { useCartStore } from '@/shared/hooks/useCartStore'
 import { debounce } from '@/shared/utils/format'
@@ -12,17 +12,45 @@ import MenuCard from '../components/MenuCard'
 import CategoryTabs from '../components/CategoryTabs'
 import CartFAB from '../components/CartFAB'
 import ItemDetailSheet from '../components/ItemDetailSheet'
+import { useQuery } from '@tanstack/react-query'
+import api from '@/shared/api/axios'
 
 export default function MenuPage() {
   const { tableId } = useParams()
   const navigate = useNavigate()
-  const { name, tableNumber } = useCustomerStore()
+  const { name, tableNumber, setTable } = useCustomerStore()
   const itemCount = useCartStore(s => s.itemCount)
 
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
-  const [isLoading] = useState(false)
+
+  // Fetch table info from backend if not in store (direct QR scan bypass)
+  useEffect(() => {
+    if (!tableNumber && tableId) {
+      api.get(`/tables/${tableId}`)
+        .then(res => setTable({ tableId: String(res.data.id), tableNumber: res.data.table_number }))
+        .catch(() => setTable({ tableId, tableNumber: tableId }))
+    }
+  }, [tableId, tableNumber, setTable])
+
+  // Fetch categories from backend
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await api.get('/menu/categories')
+      return res.data
+    }
+  })
+
+  // Fetch menu from backend
+  const { data: menuItems = [], isLoading } = useQuery({
+    queryKey: ['menu'],
+    queryFn: async () => {
+      const res = await api.get('/menu')
+      return res.data
+    }
+  })
 
   // Guard — jika belum isi identitas
   if (!name) {
@@ -32,7 +60,7 @@ export default function MenuPage() {
   const handleSearch = debounce((val) => setSearchQuery(val), 300)
 
   const filteredItems = useMemo(() => {
-    let items = MOCK_MENU
+    let items = menuItems
     if (selectedCategory !== 'all') {
       items = items.filter(i => i.category_id === selectedCategory)
     }
@@ -44,18 +72,18 @@ export default function MenuPage() {
       )
     }
     return items
-  }, [selectedCategory, searchQuery])
+  }, [selectedCategory, searchQuery, menuItems])
 
   // Group by category for "All" view
   const groupedItems = useMemo(() => {
     if (selectedCategory !== 'all' || searchQuery) return null
     const groups = {}
-    MOCK_CATEGORIES.forEach(cat => {
-      const items = MOCK_MENU.filter(i => i.category_id === cat.id)
+    categories.forEach(cat => {
+      const items = menuItems.filter(i => i.category_id === cat.id)
       if (items.length > 0) groups[cat.name] = items
     })
     return groups
-  }, [selectedCategory, searchQuery])
+  }, [selectedCategory, searchQuery, categories, menuItems])
 
   return (
     <div className="page-customer flex flex-col min-h-dvh">
@@ -86,7 +114,7 @@ export default function MenuPage() {
 
         {/* Category tabs */}
         <CategoryTabs
-          categories={MOCK_CATEGORIES}
+          categories={categories}
           selected={selectedCategory}
           onChange={setSelectedCategory}
         />

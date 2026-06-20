@@ -7,6 +7,7 @@ import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import { formatRupiah } from '@/shared/utils/format'
 import { toast } from '@/shared/components/Toast'
 import Button from '@/shared/components/Button'
+import api from '@/shared/api/axios'
 
 const PAYMENT_METHODS = [
   {
@@ -45,16 +46,32 @@ export default function PaymentPage() {
   const [selectedMethod, setSelectedMethod] = useState('qris')
   const [loading, setLoading] = useState(false)
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setLoading(true)
-    // Simulate order creation — mock response
-    setTimeout(() => {
-      clearCart()
-      toast.success('Pesanan berhasil dibuat!')
-      // Navigate to mock order status page
-      navigate(`/order/mock-order-${Date.now()}/status`, { replace: true })
+    try {
+      const response = await api.post('/orders', {
+        table_id: tableId,
+        customer_name: name,
+        customer_phone: phone,
+        items: items,
+        kitchen_note: kitchenNote,
+        total_amount: total,
+        payment_method: selectedMethod
+      })
+
+      if (response.data.success) {
+        clearCart()
+        toast.success('Pesanan berhasil dibuat!')
+        navigate(`/order/${response.data.orderId}/status`, { replace: true })
+      } else {
+        toast.error(response.data.message || 'Gagal mengirim pesanan')
+      }
+    } catch (error) {
+      console.error('Failed to create order', error)
+      toast.error('Gagal mengirim pesanan. Silakan coba lagi.')
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }
 
   return (

@@ -4,14 +4,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
+import { Lock, User, Eye, EyeOff } from 'lucide-react'
 import { MOCK_CREDENTIALS } from '@/shared/mock/mockData'
 import { toast } from '@/shared/components/Toast'
 import Input from '@/shared/components/Input'
 import Button from '@/shared/components/Button'
+import api from '@/shared/api/axios'
 
 const schema = z.object({
-  email:    z.string().email('Email tidak valid'),
+  email:    z.string().min(1, 'Username wajib diisi'),
   password: z.string().min(1, 'Password wajib diisi'),
 })
 
@@ -28,21 +29,18 @@ export default function AdminLoginPage() {
     },
   })
 
-  const onSubmit = ({ email, password }) => {
+  const onSubmit = async ({ email, password }) => {
     setLoading(true)
-    setTimeout(() => {
-      if (
-        email === MOCK_CREDENTIALS.admin.email &&
-        password === MOCK_CREDENTIALS.admin.password
-      ) {
-        localStorage.setItem('cafeos_admin_token', 'mock_admin_token')
-        toast.success('Selamat datang, Admin!')
-        navigate('/admin', { replace: true })
-      } else {
-        toast.error('Email atau password salah')
-      }
+    try {
+      const response = await api.post('/auth/login/admin', { email, password })
+      localStorage.setItem('cafeos_admin_token', response.data.token)
+      toast.success('Selamat datang, Admin!')
+      navigate('/admin', { replace: true })
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Email atau password salah')
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   return (
@@ -67,16 +65,16 @@ export default function AdminLoginPage() {
           {/* Hint box */}
           <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-xs text-brand-700 space-y-0.5">
             <p className="font-semibold">🔑 Demo Credentials</p>
-            <p>Email: <span className="font-mono font-bold">{MOCK_CREDENTIALS.admin.email}</span></p>
+            <p>Username: <span className="font-mono font-bold">{MOCK_CREDENTIALS.admin.email}</span></p>
             <p>Password: <span className="font-mono font-bold">{MOCK_CREDENTIALS.admin.password}</span></p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
-              label="Email"
-              type="email"
-              autoComplete="email"
-              prefix={<Mail className="w-4 h-4" />}
+              label="Username"
+              type="text"
+              autoComplete="username"
+              prefix={<User className="w-4 h-4" />}
               error={errors.email?.message}
               {...register('email')}
             />

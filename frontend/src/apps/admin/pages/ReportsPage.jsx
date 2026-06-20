@@ -6,10 +6,29 @@ import {
   MOCK_STATS, MOCK_TOP_ITEMS, MOCK_PAYMENT_BREAKDOWN, MOCK_HOURLY
 } from '@/shared/mock/mockData'
 import { formatRupiah } from '@/shared/utils/format'
+import { useQuery } from '@tanstack/react-query'
+import api from '@/shared/api/axios'
 
 const COLORS = ['#F59E0B', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444', '#F97316']
 
 export default function ReportsPage() {
+  const { data: stats = MOCK_STATS } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const res = await api.get('/orders/stats')
+      return res.data
+    },
+    refetchInterval: 60000
+  })
+
+  const hourlyData = stats.hourly?.length > 0 ? stats.hourly : MOCK_HOURLY
+  const topItems = stats.topItems?.length > 0 ? stats.topItems : MOCK_TOP_ITEMS
+
+  // For payment breakdown, derive from orders if available or use mock
+  const paymentBreakdown = MOCK_PAYMENT_BREAKDOWN
+
+  const totalItemsSold = topItems.reduce((s, i) => s + (i.quantity || i.qty || 0), 0)
+
   return (
     <div className="space-y-6 max-w-6xl">
       <div>
@@ -22,10 +41,10 @@ export default function ReportsPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Revenue Hari Ini',   value: formatRupiah(MOCK_STATS.revenueToday) },
-          { label: 'Total Pesanan',      value: MOCK_STATS.ordersToday },
-          { label: 'Total Item Terjual', value: MOCK_TOP_ITEMS.reduce((s, i) => s + i.quantity, 0) },
-          { label: 'Rata-rata Pesanan',  value: formatRupiah(MOCK_STATS.avgOrderValue) },
+          { label: 'Revenue Hari Ini',   value: formatRupiah(stats.revenueToday || 0) },
+          { label: 'Total Pesanan',      value: stats.ordersToday || 0 },
+          { label: 'Total Item Terjual', value: totalItemsSold },
+          { label: 'Rata-rata Pesanan',  value: formatRupiah(stats.avgOrderValue || 0) },
         ].map(card => (
           <div key={card.label} className="bg-white rounded-2xl p-5 shadow-card">
             <p className="text-xs text-ink-muted font-semibold uppercase tracking-wide">{card.label}</p>
@@ -38,18 +57,24 @@ export default function ReportsPage() {
         {/* Top items */}
         <div className="bg-white rounded-2xl p-5 shadow-card">
           <h2 className="font-heading font-bold text-lg text-ink-primary mb-4">Menu Terlaris</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={MOCK_TOP_ITEMS} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} width={130} />
-              <Tooltip
-                formatter={(v) => [v, 'Terjual']}
-                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}
-              />
-              <Bar dataKey="quantity" fill="#F59E0B" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {topItems.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={topItems} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} width={130} />
+                <Tooltip
+                  formatter={(v) => [v, 'Terjual']}
+                  contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}
+                />
+                <Bar dataKey="quantity" fill="#F59E0B" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-ink-muted text-sm">
+              Belum ada data penjualan hari ini
+            </div>
+          )}
         </div>
 
         {/* Payment methods pie */}
@@ -58,7 +83,7 @@ export default function ReportsPage() {
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
-                data={MOCK_PAYMENT_BREAKDOWN}
+                data={paymentBreakdown}
                 dataKey="amount"
                 nameKey="method"
                 cx="50%"
@@ -67,7 +92,7 @@ export default function ReportsPage() {
                 innerRadius={55}
                 paddingAngle={3}
               >
-                {MOCK_PAYMENT_BREAKDOWN.map((_, i) => (
+                {paymentBreakdown.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
@@ -78,7 +103,7 @@ export default function ReportsPage() {
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 mt-2 justify-center">
-            {MOCK_PAYMENT_BREAKDOWN.map((item, i) => (
+            {paymentBreakdown.map((item, i) => (
               <div key={item.method} className="flex items-center gap-1.5 text-xs text-ink-secondary">
                 <div className="w-3 h-3 rounded-full" style={{ background: COLORS[i] }} />
                 {item.method}
@@ -91,18 +116,24 @@ export default function ReportsPage() {
       {/* Revenue per hour */}
       <div className="bg-white rounded-2xl p-5 shadow-card">
         <h2 className="font-heading font-bold text-lg text-ink-primary mb-4">Revenue per Jam</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={MOCK_HOURLY}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="hour" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-            <YAxis tickFormatter={(v) => `${v / 1000}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-            <Tooltip
-              formatter={(v) => [formatRupiah(v), 'Revenue']}
-              contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}
-            />
-            <Bar dataKey="revenue" fill="#F59E0B" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {hourlyData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={hourlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="hour" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis tickFormatter={(v) => `${v / 1000}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <Tooltip
+                formatter={(v) => [formatRupiah(v), 'Revenue']}
+                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}
+              />
+              <Bar dataKey="revenue" fill="#F59E0B" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-48 text-ink-muted text-sm">
+            Belum ada data revenue hari ini
+          </div>
+        )}
       </div>
     </div>
   )

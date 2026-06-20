@@ -1,17 +1,38 @@
-# Walkthrough: Perbaikan Tombol Keranjang Belanja (Cart FAB)
+# Walkthrough: Implementasi Halaman Kasir & Manajemen User Cashier — CaféOS
 
-Kami telah menemukan dan memperbaiki masalah mengapa menu/tombol keranjang belanja tidak muncul setelah Anda menambahkan menu makanan/minuman.
+Kami telah berhasil mengimplementasikan Modul Kasir (Cashier POS) beserta dengan penambahan role Cashier pada dashboard admin CaféOS.
 
-## Masalah yang Ditemukan
-Di dalam file `frontend/src/shared/hooks/useCartStore.js`, nilai `itemCount`, `subtotal`, `tax`, dan `total` sebelumnya dideklarasikan sebagai Getter ES6 (`get itemCount()`, dll.).
-Pada library state management **Zustand**, ketika fungsi `set()` dipanggil untuk memperbarui isi keranjang, Zustand melakukan penyebaran objek (*object spread* / merge) untuk state baru. Hal ini mengevaluasi fungsi getter tersebut secara instan berdasarkan nilai awal (`0`), lalu menyimpannya sebagai properti statis biasa. Akibatnya, reaktivitas dari nilai tersebut terputus dan nilainya terkunci selamanya di angka `0`.
+## Fitur Baru & Perubahan yang Dilakukan
 
-Karena `itemCount` selalu terbaca `0`, kondisi `{itemCount > 0 && <CartFAB ... />}` di `frontend/src/apps/customer/pages/MenuPage.jsx` tidak pernah terpenuhi, sehingga tombol melayang keranjang tidak muncul.
+### 1. Backend Updates
+- **`user.routes.js`**: Menambahkan role `'cashier'` ke dalam daftar role yang diperbolehkan saat pembuatan user baru di database (`admin`, `kitchen`, `cashier`).
+- **`auth.routes.js`**: Menambahkan endpoint `/login/cashier` yang dapat memvalidasi kredensial login user dengan role `'cashier'` atau `'admin'` dan mengembalikan token JWT.
 
-## Perubahan yang Dilakukan
-Kami memperbarui file `frontend/src/shared/hooks/useCartStore.js` dengan skema berikut:
-1. Mengubah `itemCount`, `subtotal`, `tax`, dan `total` menjadi variabel state biasa yang reaktif.
-2. Membuat fungsi pembantu `computeDerived(items)` yang menghitung total harga, pajak, dan jumlah item secara langsung.
-3. Memperbarui setiap action (`addItem`, `removeItem`, `updateQty`, `updateNotes`, `clearCart`) agar otomatis menghitung ulang nilai-nilai tersebut setiap kali item di keranjang berubah.
+### 2. Admin Dashboard — Manajemen User Kasir
+- **`UsersPage.jsx`**:
+  - Menambahkan role `'cashier'` (Kasir) ke dalam konfigurasi visual `ROLE_CONFIG` dengan ikon `Receipt` dan skema warna hijau emerald.
+  - Memperbarui statistik info card menjadi 3 kolom (Admin, Dapur, Kasir) untuk memantau jumlah staf per role.
+  - Menyediakan opsi radio button baru "Kasir" di dalam modal form Tambah User Baru beserta penjelasan deskripsi aksesnya.
+  - Menghubungkan input placeholder & validasi panjang password/PIN untuk staf kasir baru.
 
-Dengan cara ini, komponen visual React akan mendeteksi perubahan state secara real-time dan langsung memperbarui antarmuka pengguna (UI).
+### 3. Modul Kasir (Cashier POS)
+- **`CashierLoginPage.jsx`**: Halaman login khusus kasir (`/cashier/login`) menggunakan kombinasi username dan password, dengan warna tema hijau emerald.
+- **`CashierPOSPage.jsx`**: Halaman Point of Sale (POS) kasir berpenampilan premium (2 kolom layout) untuk input pemesanan manual di meja kasir.
+- **`CashierGuard.jsx`**: Menjaga halaman `/cashier` agar hanya dapat diakses oleh user yang telah terautentikasi dengan role `cashier` atau `admin`.
+- **`useCashierCart.js`**: Zustand store lokal yang memanajemen keranjang belanja kasir secara terpisah dari keranjang pelanggan.
+
+---
+
+## Cara Verifikasi & Hasil Pengujian
+
+1. **Membuat Akun Kasir via Admin**:
+   - Login ke Admin Dashboard (`/admin/login`).
+   - Masuk ke menu **Manajemen User** di sidebar.
+   - Klik **Tambah User**, pilih role **Kasir**, masukkan username `kasir01`, password `kasir123`, lalu klik **Buat User**.
+   - User baru bermunculan di tabel dengan badge hijau **Kasir**.
+
+2. **Login & Akses Kasir POS**:
+   - Navigasi ke `/cashier/login`.
+   - Login dengan username `kasir01` dan password `kasir123`.
+   - Berhasil login dan diarahkan ke dashboard POS `/cashier`.
+   - Nama pengguna `kasir01` tampil di pojok kanan atas POS.

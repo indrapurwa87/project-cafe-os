@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag,
-  TableProperties, CreditCard, BarChart3, Settings,
-  LogOut, Menu, X, Coffee
+  TableProperties, CreditCard, BarChart3,
+  LogOut, Menu, X, Coffee, Users
 } from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
 
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/admin/tables',    label: 'Meja & QR',  icon: TableProperties },
   { to: '/admin/payments',  label: 'Pembayaran', icon: CreditCard },
   { to: '/admin/reports',   label: 'Laporan',    icon: BarChart3 },
+  { to: '/admin/users',     label: 'User',       icon: Users },
 ]
 
 export default function AdminLayout() {

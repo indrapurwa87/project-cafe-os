@@ -5,6 +5,8 @@ import { CheckCircle, Clock, ChefHat, UtensilsCrossed, Plus } from 'lucide-react
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import Button from '@/shared/components/Button'
 import { formatRupiah } from '@/shared/utils/format'
+import api from '@/shared/api/axios'
+import { io } from 'socket.io-client'
 
 const STEPS = [
   { key: 'pending',    label: 'Pesanan Diterima',  icon: CheckCircle,     desc: 'Pesanan kamu sudah masuk!' },
@@ -15,26 +17,40 @@ const STEPS = [
 
 const STATUS_SEQ = ['pending', 'processing', 'ready', 'done']
 
-// Simulate order progressing automatically for demo
-function useMockOrderStatus() {
-  const [stepIdx, setStepIdx] = useState(0)
-
-  useEffect(() => {
-    const timings = [3000, 6000, 9000] // advance steps at 3s, 6s, 9s
-    const timers = timings.map((delay, i) =>
-      setTimeout(() => setStepIdx(i + 1), delay)
-    )
-    return () => timers.forEach(clearTimeout)
-  }, [])
-
-  return STATUS_SEQ[stepIdx]
-}
-
 export default function OrderStatusPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const { name, tableNumber, tableId } = useCustomerStore()
-  const status = useMockOrderStatus()
+  const [status, setStatus] = useState('pending')
+  const [amount, setAmount] = useState(0)
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const response = await api.get(`/orders/${orderId}/status`)
+        setStatus(response.data.status)
+        setAmount(response.data.totalAmount)
+      } catch (error) {
+        console.error('Failed to fetch order status', error)
+      }
+    }
+    
+    fetchStatus()
+
+    // Real-time updates via Socket.io
+    const socket = io()
+
+    socket.on('order:status_changed', (data) => {
+      if (data.orderId === orderId) {
+        if (data.status) setStatus(data.status)
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [orderId])
+
   const currentStepIdx = STATUS_SEQ.indexOf(status)
 
   return (

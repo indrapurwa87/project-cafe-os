@@ -1,257 +1,108 @@
-# 🛠️ Implementation Plan — Frontend CaféOS
+# 🧾 Halaman Kasir (Cashier POS) — CaféOS
 
-**Versi:** 1.0  
-**Tanggal:** 18 Juni 2026  
-**Scope:** Frontend React (Customer PWA + Kitchen KDS + Admin Dashboard)
+Menambahkan modul kasir baru agar staff di counter bisa membuat pesanan secara manual. Fitur ini melengkapi alur pemesanan self-service (QR code) yang sudah ada, untuk kasus di mana pelanggan langsung memesan di kasir tanpa scan QR.
 
----
+## User Review Required
 
-## Keputusan Desain Final
+> [!IMPORTANT]
+> **Modul baru `cashier`** akan dibuat sebagai app terpisah di `frontend/src/apps/cashier/`, bukan di dalam admin panel. Ini agar kasir punya tampilan yang lebih ringkas dan fokus untuk alur pemesanan cepat, tanpa akses ke manajemen menu/laporan/user.
 
-| Aspek | Keputusan |
-|-------|-----------|
-| **Tema** | ✅ Light theme — warm cream/white (`#FFFBF5`) + amber accent |
-| **Customer identity** | ✅ Input Nama + No. HP wajib sebelum akses menu |
-| **Simpan data** | Checkbox "ingat saya" → `localStorage` |
-| **Flow baru** | Splash → **Identity Form** → Menu → Cart → Bayar → Status |
+> [!NOTE]
+> **Login kasir**: Kasir akan login menggunakan **username + password** (mirip admin login), tetapi hanya user dengan role `cashier` atau `admin` yang bisa masuk. Ini berarti perlu menambahkan user baru dengan role `cashier` di menu User Management admin.
 
 ---
 
-## Tech Stack Final
+## Proposed Changes
 
-| Layer | Library / Tool | Alasan |
-|-------|---------------|--------|
-| **Framework** | React 18 + Vite | Fast HMR, modern build |
-| **Routing** | React Router v6 | Nested routes, lazy loading |
-| **State (global)** | Zustand | Ringan, cart + user state |
-| **State (server)** | TanStack Query (React Query) | Cache, refetch, loading state otomatis |
-| **Styling** | Tailwind CSS v3 | Utility-first, cepat kustomisasi |
-| **Animation** | Framer Motion | Page transition, micro-animation |
-| **Icons** | Lucide React | Konsisten, tree-shakeable |
-| **Charts (admin)** | Recharts | Ringan, composable |
-| **Form** | React Hook Form + Zod | Validasi input identity & admin form |
-| **WebSocket** | Socket.io-client | Real-time KDS + order status |
-| **HTTP Client** | Axios | Interceptor, base URL config |
-| **QR Code** | `qrcode.react` | Generate QR preview di admin |
+### 1. Frontend — Modul Kasir
+
+#### [NEW] `frontend/src/apps/cashier/pages/CashierLoginPage.jsx`
+Halaman login kasir dengan username + password. UI mirip admin login tetapi dengan branding "CaféOS Kasir". Hanya menerima role `cashier` atau `admin`.
+
+#### [NEW] `frontend/src/apps/cashier/pages/CashierPOSPage.jsx`
+Halaman utama POS (Point of Sale) kasir. Layout desktop-friendly (landscape) dengan 2 kolom:
+
+**Kolom Kiri — Menu Browser (≈60%)**
+- Dropdown/selector pemilihan meja (dari data `tables` API)
+- Input nama pelanggan & nomor telepon
+- Tab kategori menu (menggunakan data dari API `/menu/categories`)
+- Grid menu items (dari API `/menu`) dengan tombol quick-add
+- Search bar untuk cari menu cepat
+
+**Kolom Kanan — Keranjang & Checkout (≈40%)**
+- Daftar item yang dipilih dengan +/- qty dan tombol hapus
+- Catatan dapur (kitchen note)
+- Ringkasan harga: subtotal, pajak (10%), total
+- Pilihan metode pembayaran (Cash / QRIS / E-Wallet)
+- Tombol "Buat Pesanan" yang submit ke `POST /api/orders`
+- Setelah sukses: tampilkan modal konfirmasi dengan nomor order, lalu reset form
+
+#### [NEW] `frontend/src/apps/cashier/components/CashierGuard.jsx`
+Auth guard yang mengecek token & role (`cashier` atau `admin`) di `localStorage`. Redirect ke `/cashier/login` jika belum login.
+
+#### [NEW] `frontend/src/apps/cashier/hooks/useCashierCart.js`
+Zustand store lokal untuk keranjang kasir (terpisah dari `useCartStore` customer). Berisi: items, addItem, removeItem, updateQty, kitchenNote, subtotal, tax, total, clearCart.
 
 ---
 
-## Struktur Proyek
+### 2. Routing
 
+#### [MODIFY] [App.jsx](file:///d:/Development/project_cafe/frontend/src/App.jsx)
+Tambahkan route baru:
 ```
-cafeos-frontend/
-├── public/
-│   └── favicon.ico
-├── src/
-│   ├── apps/
-│   │   ├── customer/
-│   │   │   ├── pages/
-│   │   │   │   ├── SplashPage.jsx
-│   │   │   │   ├── IdentityPage.jsx       ← BARU
-│   │   │   │   ├── MenuPage.jsx
-│   │   │   │   ├── CartPage.jsx
-│   │   │   │   ├── PaymentPage.jsx
-│   │   │   │   └── OrderStatusPage.jsx
-│   │   │   └── components/
-│   │   │       ├── MenuCard.jsx
-│   │   │       ├── CategoryTabs.jsx
-│   │   │       ├── CartFAB.jsx
-│   │   │       ├── ItemDetailSheet.jsx
-│   │   │       ├── PaymentMethodCard.jsx
-│   │   │       └── StatusStepper.jsx
-│   │   ├── kitchen/
-│   │   │   ├── pages/
-│   │   │   │   ├── KitchenLoginPage.jsx
-│   │   │   │   └── KitchenPage.jsx
-│   │   │   └── components/
-│   │   │       ├── OrderTicket.jsx
-│   │   │       └── OrderQueue.jsx
-│   │   └── admin/
-│   │       ├── pages/
-│   │       │   ├── LoginPage.jsx
-│   │       │   ├── DashboardPage.jsx
-│   │       │   ├── OrdersPage.jsx
-│   │       │   ├── MenuManagePage.jsx
-│   │       │   ├── CategoriesPage.jsx
-│   │       │   ├── TablesPage.jsx
-│   │       │   ├── PaymentsPage.jsx
-│   │       │   └── ReportsPage.jsx
-│   │       ├── layouts/
-│   │       │   └── AdminLayout.jsx
-│   │       └── components/
-│   │           ├── Sidebar.jsx
-│   │           ├── StatCard.jsx
-│   │           ├── RevenueChart.jsx
-│   │           ├── OrdersTable.jsx
-│   │           ├── MenuTable.jsx
-│   │           ├── TableGrid.jsx
-│   │           └── QRCodeCard.jsx
-│   ├── shared/
-│   │   ├── components/
-│   │   │   ├── Button.jsx
-│   │   │   ├── Input.jsx
-│   │   │   ├── Badge.jsx
-│   │   │   ├── Modal.jsx
-│   │   │   ├── BottomSheet.jsx
-│   │   │   ├── Skeleton.jsx
-│   │   │   ├── Toast.jsx
-│   │   │   └── EmptyState.jsx
-│   │   ├── hooks/
-│   │   │   ├── useCart.js
-│   │   │   ├── useCustomer.js
-│   │   │   ├── useSocket.js
-│   │   │   └── useOrderStatus.js
-│   │   ├── api/
-│   │   │   ├── axios.js
-│   │   │   ├── menu.api.js
-│   │   │   ├── orders.api.js
-│   │   │   ├── tables.api.js
-│   │   │   └── payments.api.js
-│   │   └── styles/
-│   │       └── global.css
-│   ├── router.jsx
-│   └── main.jsx
-├── tailwind.config.js
-├── vite.config.js
-└── package.json
+/cashier/login  → CashierLoginPage
+/cashier        → CashierGuard > CashierPOSPage
 ```
 
 ---
 
-## Design Tokens (Tailwind Config)
+### 3. Backend
 
-```js
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        brand: {
-          50:  '#FFFBF5',
-          100: '#FEF3C7',
-          300: '#FCD34D',
-          400: '#FBBF24',
-          500: '#F59E0B',  // ← CTA utama
-          600: '#D97706',
-          700: '#B45309',
-        },
-        surface: {
-          DEFAULT: '#FFFFFF',
-          muted:   '#F9FAFB',
-        },
-        ink: {
-          primary:   '#1C1917',
-          secondary: '#57534E',
-          muted:     '#A8A29E',
-        },
-        status: {
-          new:       '#F59E0B',
-          process:   '#3B82F6',
-          ready:     '#10B981',
-          done:      '#6B7280',
-          cancelled: '#EF4444',
-        }
-      },
-      fontFamily: {
-        heading: ['Plus Jakarta Sans', 'sans-serif'],
-        body:    ['Inter', 'sans-serif'],
-      },
-      boxShadow: {
-        card:       '0 2px 16px rgba(0,0,0,0.08)',
-        'card-hover':'0 8px 32px rgba(0,0,0,0.12)',
-        glow:       '0 0 20px rgba(245,158,11,0.25)',
-      }
-    }
-  }
-}
+#### [MODIFY] [auth.routes.js](file:///d:/Development/project_cafe/backend/src/routes/auth.routes.js)
+Tambahkan endpoint `POST /api/auth/login/cashier` yang menerima `username` + `password`, memvalidasi dari tabel `users` dengan role `cashier` or `admin`, dan mengembalikan JWT token.
+
+**Tidak perlu ubah `order.routes.js`** — endpoint `POST /api/orders` yang ada sudah cukup untuk menerima pesanan dari kasir (sama persis dengan dari customer). Pesanan dari kasir dikirim dengan data yang sama: `table_id`, `customer_name`, `customer_phone`, `items`, `kitchen_note`, `total_amount`, `payment_method`.
+
+---
+
+### 4. Dokumen PRD & Navigasi
+
+#### [MODIFY] [PRD_CafeApp.md](file:///C:/Users/indra/.gemini/antigravity-ide/brain/7717e64d-90cb-43f6-a599-889b1d237152/PRD_CafeApp.md)
+Tambahkan:
+- **Persona Kasir** di bagian User Personas
+- **F-11: Modul Kasir (Cashier POS)** di bagian Scope & Fitur
+- Update arsitektur diagram untuk menyertakan Cashier app
+
+#### [MODIFY] [UIUX_Navigation.md](file:///C:/Users/indra/.gemini/antigravity-ide/brain/7717e64d-90cb-43f6-a599-889b1d237152/UIUX_Navigation.md)
+Tambahkan alur navigasi kasir:
+```
+/cashier/login → /cashier (POS Page)
 ```
 
 ---
 
-## Fase Pengerjaan
+## Ringkasan File
 
-### ✅ FASE 1 — Project Setup & Design System (Hari 1–2)
-
-#### 1.1 Inisialisasi Proyek
-- [x] Inisialisasi Vite + React
-- [x] Install semua dependencies utama (Tailwind CSS, React Router, Zustand, dll.)
-- [x] Setup Tailwind dengan tokens custom
-- [x] Konfigurasi Google Fonts & path alias `@/`
-
-#### 1.2 Shared Components
-- [x] `Button`
-- [x] `Input`
-- [x] `Badge`
-- [x] `Skeleton`
-- [x] `Toast`
-- [x] `EmptyState`
-- [x] `Modal`
-- [x] `BottomSheet`
+| Status | File | Deskripsi |
+|--------|------|-----------|
+| 🆕 NEW | `cashier/pages/CashierLoginPage.jsx` | Login kasir (username + password) |
+| 🆕 NEW | `cashier/pages/CashierPOSPage.jsx` | Halaman POS utama (2 kolom) |
+| 🆕 NEW | `cashier/components/CashierGuard.jsx` | Auth guard untuk kasir |
+| 🆕 NEW | `cashier/hooks/useCashierCart.js` | Zustand store keranjang kasir |
+| ✏️ MODIFY | `App.jsx` | Tambah route `/cashier/*` |
+| ✏️ MODIFY | `auth.routes.js` | Tambah endpoint login kasir |
+| ✏️ MODIFY | `PRD_CafeApp.md` | Tambah persona & fitur kasir |
+| ✏️ MODIFY | `UIUX_Navigation.md` | Tambah alur navigasi kasir |
 
 ---
 
-### ✅ FASE 2 — Customer PWA (Hari 3–6)
+## Verification Plan
 
-#### 2.1 Zustand Stores
-- [x] `useCustomerStore` (dengan sinkronisasi `localStorage`)
-- [x] `useCartStore` (diperbaiki agar nilainya reaktif)
-
-#### 2.2 Screen Details
-- [x] `SplashPage` (dengan deteksi `tableId` otomatis)
-- [x] `IdentityPage` (form nama & nomor HP pelanggan)
-- [x] `MenuPage` (dilengkapi search, tabs, & tombol keranjang belanja melayang/Cart FAB)
-- [x] `CartPage` (dilengkapi qty editor & catatan khusus dapur)
-- [x] `PaymentPage` (pilihan e-wallet, virtual account, kasir)
-- [x] `OrderStatusPage` (status pelacakan pesanan real-time)
-
----
-
-### ✅ FASE 3 — Kitchen Display System (Hari 7–8)
-
-- [x] PIN Login halaman Kitchen (`/kitchen/login`)
-- [x] `KitchenPage` (tampilan antrean pesanan berdasarkan status: Baru, Proses, Siap)
-- [x] `OrderTicket` card (detail menu pesanan beserta pengukur waktu)
-
----
-
-### ✅ FASE 4 — Admin Dashboard (Hari 9–12)
-
-- [x] `AdminLayout` dengan sidebar yang dinamis
-- [x] `DashboardPage` (ringkasan statistik penjualan, bagan rekapitulasi)
-- [x] `MenuManagePage` (tambah/sunting/hapus menu cafe, status ketersediaan)
-- [x] `TablesPage` (manajemen tata letak meja + generate QR Code)
-- [x] `OrdersPage` (catatan pesanan masuk, kontrol override status)
-- [x] `ReportsPage` (laporan performa, cetak dokumen PDF/Excel mock)
-
----
-
-## Routing Map
-
-```jsx
-<Routes>
-  {/* CUSTOMER */}
-  <Route path="/menu" element={<SplashPage />} />
-  <Route path="/menu/:tableId/identify" element={<IdentityPage />} />
-  <Route path="/menu/:tableId" element={<MenuPage />} />
-  <Route path="/menu/:tableId/cart" element={<CartPage />} />
-  <Route path="/menu/:tableId/payment" element={<PaymentPage />} />
-  <Route path="/order/:orderId/status" element={<OrderStatusPage />} />
-
-  {/* KITCHEN */}
-  <Route path="/kitchen/login" element={<KitchenLoginPage />} />
-  <Route path="/kitchen" element={<KitchenGuard><KitchenPage /></KitchenGuard>} />
-
-  {/* ADMIN */}
-  <Route path="/admin/login" element={<AdminLoginPage />} />
-  <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
-    <Route index element={<DashboardPage />} />
-    <Route path="orders" element={<OrdersPage />} />
-    <Route path="menu" element={<MenuManagePage />} />
-    <Route path="categories" element={<CategoriesPage />} />
-    <Route path="tables" element={<TablesPage />} />
-    <Route path="payments" element={<PaymentsPage />} />
-    <Route path="reports" element={<ReportsPage />} />
-    <Route path="settings" element={<SettingsPage />} />
-  </Route>
-</Routes>
-```
+### Manual Verification
+1. Buat user `cashier` role `cashier` via admin User Management
+2. Login di `/cashier/login` dengan user tersebut
+3. Pilih meja, isi nama pelanggan, tambah menu ke keranjang
+4. Submit pesanan → verifikasi order muncul di:
+   - Admin panel > Pesanan
+   - Kitchen Display System (KDS)
+5. Verifikasi pesanan masuk ke database MySQL (`orders` + `order_items`)

@@ -1,20 +1,55 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search } from 'lucide-react'
-import { MOCK_ORDERS } from '@/shared/mock/mockData'
+import { Search, RefreshCw } from 'lucide-react'
 import { formatRupiah } from '@/shared/utils/format'
 import Badge from '@/shared/components/Badge'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '@/shared/api/axios'
+import { toast } from '@/shared/components/Toast'
+import { io } from 'socket.io-client'
+import { useEffect } from 'react'
 
 const STATUS_FILTERS = ['all', 'pending', 'processing', 'ready', 'done', 'cancelled']
 
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const queryClient = useQueryClient()
 
-  const updateStatus = (id, status) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
-  }
+  const { data: orders = [], isLoading, refetch } = useQuery({
+    queryKey: ['admin-orders-page'],
+    queryFn: async () => {
+      const res = await api.get('/orders')
+      return res.data
+    },
+    refetchInterval: 60000
+  })
+
+  // Real-time order updates via Socket.io
+  useEffect(() => {
+    const socket = io()
+
+    socket.on('order:new', () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-page'] })
+    })
+
+    socket.on('order:status_changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-page'] })
+    })
+
+    return () => socket.disconnect()
+  }, [queryClient])
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => api.patch(`/orders/${id}/status`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-page'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] })
+      toast.success('Status pesanan diperbarui')
+    },
+    onError: () => toast.error('Gagal memperbarui status')
+  })
 
   const filtered = orders.filter(o =>
     (statusFilter === 'all' || o.status === statusFilter) &&
@@ -24,7 +59,16 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-5 max-w-6xl">
-      <h1 className="font-heading font-bold text-2xl text-ink-primary">Manajemen Pesanan</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading font-bold text-2xl text-ink-primary">Manajemen Pesanan</h1>
+        <button
+          onClick={() => refetch()}
+          className="p-2 rounded-lg hover:bg-surface-muted text-ink-muted transition-colors"
+          title="Refresh"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -64,7 +108,14 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-placeholder/10">
-              {filtered.map(order => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-8 text-center text-ink-muted text-sm">
+                    <span className="inline-block w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mr-2" />
+                    Memuat pesanan...
+                  </td>
+                </tr>
+              ) : filtered.map(order => (
                 <tr key={order.id} className="hover:bg-surface-muted transition-colors">
                   <td className="px-4 py-3 text-xs font-mono text-ink-muted">
                     #{String(order.id).slice(-4).toUpperCase()}
@@ -84,7 +135,7 @@ export default function OrdersPage() {
                   <td className="px-4 py-3">
                     {order.status === 'pending' && (
                       <button
-                        onClick={() => updateStatus(order.id, 'processing')}
+                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'processing' })}
                         className="text-xs font-semibold text-status-process hover:underline"
                       >
                         Proses
@@ -92,10 +143,18 @@ export default function OrdersPage() {
                     )}
                     {order.status === 'processing' && (
                       <button
-                        onClick={() => updateStatus(order.id, 'ready')}
+                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'ready' })}
                         className="text-xs font-semibold text-status-ready hover:underline"
                       >
                         Siap
+                      </button>
+                    )}
+                    {order.status === 'ready' && (
+                      <button
+                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'done' })}
+                        className="text-xs font-semibold text-ink-muted hover:underline"
+                      >
+                        Selesai
                       </button>
                     )}
                   </td>
@@ -103,7 +162,7 @@ export default function OrdersPage() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <div className="text-center py-12 text-ink-muted text-sm">Tidak ada pesanan</div>
           )}
         </div>

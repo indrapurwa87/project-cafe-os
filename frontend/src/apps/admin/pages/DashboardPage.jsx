@@ -10,6 +10,8 @@ import {
 } from '@/shared/mock/mockData'
 import { formatRupiah } from '@/shared/utils/format'
 import Badge from '@/shared/components/Badge'
+import { useQuery } from '@tanstack/react-query'
+import api from '@/shared/api/axios'
 
 function StatCard({ label, value, trend, trendLabel, icon: Icon, color }) {
   const isUp = trend >= 0
@@ -26,7 +28,7 @@ function StatCard({ label, value, trend, trendLabel, icon: Icon, color }) {
         </div>
       </div>
       <p className="font-heading font-extrabold text-2xl text-ink-primary">{value}</p>
-      {trend !== undefined && (
+      {trend !== undefined && trend !== 0 && (
         <div className={`flex items-center gap-1 text-xs font-semibold ${isUp ? 'text-status-ready' : 'text-status-cancelled'}`}>
           {isUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
           {isUp ? '+' : ''}{trend}% {trendLabel}
@@ -37,6 +39,27 @@ function StatCard({ label, value, trend, trendLabel, icon: Icon, color }) {
 }
 
 export default function DashboardPage() {
+  const { data: stats = MOCK_STATS } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const res = await api.get('/orders/stats')
+      return res.data
+    },
+    refetchInterval: 30000
+  })
+
+  const { data: orders = MOCK_ORDERS } = useQuery({
+    queryKey: ['admin-orders'],
+    queryFn: async () => {
+      const res = await api.get('/orders')
+      return res.data
+    },
+    refetchInterval: 30000
+  })
+
+  const hourlyData = stats.hourly?.length > 0 ? stats.hourly : MOCK_HOURLY
+  const recentOrders = orders.slice(0, 4)
+
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
@@ -48,14 +71,14 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Revenue Hari Ini" value={formatRupiah(MOCK_STATS.revenueToday)}
-          trend={MOCK_STATS.revenueTrend} trendLabel="dari kemarin" icon={DollarSign} color="bg-brand-500" />
-        <StatCard label="Total Pesanan" value={MOCK_STATS.ordersToday}
-          trend={MOCK_STATS.ordersTrend} trendLabel="dari kemarin" icon={ShoppingBag} color="bg-status-process" />
-        <StatCard label="Meja Aktif" value={`${MOCK_STATS.activeTables}/${MOCK_STATS.totalTables}`}
+        <StatCard label="Revenue Hari Ini" value={formatRupiah(stats.revenueToday)}
+          trend={stats.revenueTrend} trendLabel="dari kemarin" icon={DollarSign} color="bg-brand-500" />
+        <StatCard label="Total Pesanan" value={stats.ordersToday}
+          trend={stats.ordersTrend} trendLabel="dari kemarin" icon={ShoppingBag} color="bg-status-process" />
+        <StatCard label="Meja Aktif" value={`${stats.activeTables}/${stats.totalTables}`}
           icon={TableProperties} color="bg-status-ready" />
-        <StatCard label="Rata-rata Pesanan" value={formatRupiah(MOCK_STATS.avgOrderValue)}
-          trend={MOCK_STATS.avgTrend} trendLabel="dari kemarin" icon={Users} color="bg-purple-500" />
+        <StatCard label="Rata-rata Pesanan" value={formatRupiah(stats.avgOrderValue)}
+          trend={stats.avgTrend} trendLabel="dari kemarin" icon={Users} color="bg-purple-500" />
       </div>
 
       {/* Chart + Recent orders */}
@@ -64,7 +87,7 @@ export default function DashboardPage() {
         <div className="xl:col-span-2 bg-white rounded-2xl p-5 shadow-card">
           <h2 className="font-heading font-bold text-lg text-ink-primary mb-4">Revenue Hari Ini (per jam)</h2>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={MOCK_HOURLY}>
+            <LineChart data={hourlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="hour" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis tickFormatter={(v) => `${v / 1000}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} />
@@ -84,7 +107,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl p-5 shadow-card">
           <h2 className="font-heading font-bold text-lg text-ink-primary mb-4">Pesanan Terbaru</h2>
           <div className="space-y-3">
-            {MOCK_ORDERS.map((order) => (
+            {recentOrders.map((order) => (
               <div key={order.id} className="flex items-center gap-3 py-1">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-ink-primary">Meja {order.tableNumber}</p>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Delete } from 'lucide-react'
 import { MOCK_CREDENTIALS } from '@/shared/mock/mockData'
 import { toast } from '@/shared/components/Toast'
+import api from '@/shared/api/axios'
 
 const PINS = ['1','2','3','4','5','6','7','8','9','','0','⌫']
 
@@ -13,20 +14,20 @@ export default function KitchenLoginPage() {
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = (fullPin) => {
+  const handleLogin = async (fullPin) => {
     setLoading(true)
-    setTimeout(() => {
-      if (fullPin === MOCK_CREDENTIALS.kitchen.pin) {
-        localStorage.setItem('cafeos_kitchen_token', 'mock_kitchen_token')
-        navigate('/kitchen', { replace: true })
-      } else {
-        setError(true)
-        toast.error('PIN salah. Gunakan: 123456')
-        setPin('')
-        setTimeout(() => setError(false), 1000)
-      }
+    try {
+      const response = await api.post('/auth/login/kitchen', { pin: fullPin })
+      localStorage.setItem('cafeos_kitchen_token', response.data.token)
+      navigate('/kitchen', { replace: true })
+    } catch (err) {
+      setError(true)
+      toast.error(err.response?.data?.message || 'PIN salah. Gunakan: 123456')
+      setPin('')
+      setTimeout(() => setError(false), 1000)
+    } finally {
       setLoading(false)
-    }, 400)
+    }
   }
 
   const handleKey = (key) => {

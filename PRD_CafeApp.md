@@ -1,9 +1,9 @@
 # 📋 Product Requirements Document (PRD)
 # CaféOS — Sistem Pemesanan Digital untuk Cafe
 
-**Versi:** 1.0  
-**Tanggal:** 18 Juni 2026  
-**Status:** Draft — Menunggu Review  
+**Versi:** 1.1  
+**Tanggal:** 20 Juni 2026  
+**Status:** Updated — Ditambahkan Modul Kasir  
 
 ---
 
@@ -92,6 +92,11 @@ Receipt digital — Selesai
 - **Goal:** Memantau performa bisnis, laporan penjualan, manajemen menu
 - **Frustrasi:** Tidak ada data real-time, rekapitulasi manual
 
+### 👤 Persona 5 — Kasir (Cashier)
+- **Siapa:** Staff kasir di counter yang menerima pesanan langsung dari pelanggan
+- **Goal:** Input pesanan pelanggan dengan cepat dan akurat, menerima pembayaran tunai/non-tunai
+- **Frustrasi:** Pencatatan manual lambat, tidak ada integrasi langsung ke dapur dan laporan
+
 ---
 
 ## 5. Scope & Fitur
@@ -143,7 +148,22 @@ Receipt digital — Selesai
 
 ---
 
-### 5.3 Modul Admin & Manajemen
+### 5.3 Modul Kasir (Cashier POS)
+
+#### F-11: Point of Sale (POS) Kasir
+- Login kasir terpisah (`/cashier/login`) menggunakan username + password
+- Hanya user dengan role `cashier` atau `admin` yang dapat mengakses
+- Tampilan 2 kolom (desktop-optimized):
+  - **Kolom Kiri**: Pemilihan meja, input nama/telepon pelanggan, kategori menu, grid menu dengan quick-add
+  - **Kolom Kanan**: Keranjang belanja, catatan dapur, ringkasan harga (subtotal + pajak), metode pembayaran, tombol submit
+- Pesanan dikirim ke endpoint yang sama (`POST /api/orders`) dan langsung muncul di KDS
+- Modal konfirmasi setelah pesanan berhasil dengan nomor order
+- Reset otomatis untuk input pesanan baru
+- Akses URL: `/cashier`
+
+---
+
+### 5.4 Modul Admin & Manajemen
 
 #### F-07: Dashboard Admin
 - Overview real-time: pesanan aktif, total pendapatan hari ini, meja yang terisi

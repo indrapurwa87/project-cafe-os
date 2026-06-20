@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,6 +8,7 @@ import { User, Phone, ChevronRight } from 'lucide-react'
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import Input from '@/shared/components/Input'
 import Button from '@/shared/components/Button'
+import api from '@/shared/api/axios'
 
 const schema = z.object({
   name: z
@@ -24,8 +25,17 @@ const schema = z.object({
 export default function IdentityPage() {
   const { tableId } = useParams()
   const navigate = useNavigate()
-  const { tableNumber, setCustomer } = useCustomerStore()
+  const { tableNumber, setTable, setCustomer } = useCustomerStore()
   const [submitting, setSubmitting] = useState(false)
+
+  // Fetch table info from backend if not yet in store (direct QR scan)
+  useEffect(() => {
+    if (!tableNumber && tableId) {
+      api.get(`/tables/${tableId}`)
+        .then(res => setTable({ tableId: String(res.data.id), tableNumber: res.data.table_number }))
+        .catch(() => setTable({ tableId, tableNumber: tableId })) // fallback: use tableId as display number
+    }
+  }, [tableId, tableNumber, setTable])
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),

@@ -25,6 +25,12 @@ import CategoriesPage   from './apps/admin/pages/CategoriesPage'
 import TablesPage       from './apps/admin/pages/TablesPage'
 import PaymentsPage     from './apps/admin/pages/PaymentsPage'
 import ReportsPage      from './apps/admin/pages/ReportsPage'
+import UsersPage        from './apps/admin/pages/UsersPage'
+
+// Cashier
+import CashierLoginPage from './apps/cashier/pages/CashierLoginPage'
+import CashierPOSPage   from './apps/cashier/pages/CashierPOSPage'
+import CashierGuard     from './apps/cashier/components/CashierGuard'
 
 export default function App() {
   return (
@@ -48,6 +54,12 @@ export default function App() {
           <KitchenGuard><KitchenPage /></KitchenGuard>
         } />
 
+        {/* ── Cashier POS ── */}
+        <Route path="/cashier/login" element={<CashierLoginPage />} />
+        <Route path="/cashier" element={
+          <CashierGuard><CashierPOSPage /></CashierGuard>
+        } />
+
         {/* ── Admin ── */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin" element={
@@ -60,6 +72,7 @@ export default function App() {
           <Route path="tables"  element={<TablesPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="users"   element={<UsersPage />} />
         </Route>
 
         {/* 404 */}
@@ -68,3 +81,4 @@ export default function App() {
     </BrowserRouter>
   )
 }
+

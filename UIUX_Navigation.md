@@ -1,9 +1,9 @@
 # 🎨 UI/UX & Navigation Design
 # CaféOS — Frontend Specification
 
-**Versi:** 1.0  
-**Tanggal:** 18 Juni 2026  
-**Scope:** 3 Aplikasi — Customer PWA · Kitchen Display · Admin Dashboard
+**Versi:** 1.1  
+**Tanggal:** 20 Juni 2026  
+**Scope:** 4 Aplikasi — Customer PWA · Kitchen Display · Cashier POS · Admin Dashboard
 
 ---
 
@@ -113,6 +113,7 @@ Shadows:
 CaféOS
 ├── 🛒 CUSTOMER PWA         → cafe.app/menu?table=5
 ├── 👨‍🍳 KITCHEN DISPLAY      → cafe.app/kitchen
+├── 🧾 CASHIER POS          → cafe.app/cashier
 └── ⚙️  ADMIN DASHBOARD     → cafe.app/admin
 ```
 
@@ -294,7 +295,7 @@ CaféOS
 │ [ + Tambah Pesanan Lagi ]   │  ← Kembali ke menu
 └─────────────────────────────┘
 ```
-- Status **polling setiap 10 detik** atau via **WebSocket push**
+- Status **polling setiap 10 detik** or via **WebSocket push**
 - Saat status berubah: animasi transisi step + haptic feedback (jika mobile)
 
 ---
@@ -338,6 +339,55 @@ CaféOS
 - Klik `MULAI` → status berubah jadi `PROSES`, warna card berubah biru
 - Klik `SIAP` → card pindah ke kolom siap, notifikasi ke waiter
 - Pesanan `SELESAI` (setelah diantar) → card hilang dengan animasi
+
+---
+
+## 4.5 Cashier POS — Navigation
+
+### Sitemap
+```
+/cashier/login
+└── /cashier              → POS Dashboard (2-kolom layout)
+```
+
+### Layout — Point of Sale
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ [🖥️] CaféOS Kasir    Point of Sale        👤 kasir01   [Keluar]│  ← Top bar (dark)
+├──────────────────────────────────────────┬───────────────────────┤
+│ [#Meja ▾] [Nama Pelanggan] [No. HP]     │  🛒 Keranjang  (5)   │
+├──────────────────────────────────────────┤                       │
+│ 🔍 Cari menu...                          │ ┌─────────────────┐  │
+│ [Semua][Espresso][Manual Brew][Non Cof]  │ │ Cappuccino x2   │  │
+│ ├────────────────────────────────────────┤ │ Rp 56.000   [🗑]│  │
+│ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐    │ │ [-] 2 [+]       │  │
+│ │ 📷   │ │ 📷   │ │ 📷   │ │ 📷   │    │ ├─────────────────┤  │
+│ │Cappu │ │Latte │ │Mocha │ │V60   │    │ │ Nasi Goreng x1  │  │
+│ │28rb  │ │28rb  │ │32rb  │ │30rb  │    │ │ Rp 35.000   [🗑]│  │
+│ │ [🟢2]│ │  [+] │ │  [+] │ │  [+] │    │ │ [-] 1 [+]       │  │
+│ └──────┘ └──────┘ └──────┘ └──────┘    │ ├─────────────────┤  │
+│ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐    │ │ Catatan dapur:  │  │
+│ │ 📷   │ │ 📷   │ │ 📷   │ │ 📷   │    │ │ [...         ]  │  │
+│ └──────┘ └──────┘ └──────┘ └──────┘    │ ├─────────────────┤  │
+│                                          │ │ Sub:  Rp 91.000 │  │
+│                                          │ │ Tax:  Rp  9.100 │  │
+│                                          │ │ ─────────────── │  │
+│                                          │ │ Total:Rp100.100 │  │
+│                                          │ ├─────────────────┤  │
+│                                          │ │ [💵][📱][🏦]    │  │
+│                                          │ │                 │  │
+│                                          │ │[🍳 Buat Pesanan]│  │
+│                                          │ └─────────────────┘  │
+└──────────────────────────────────────────┴───────────────────────┘
+  Menu Browser (~60%)                       Cart & Checkout (~40%)
+```
+
+**Behavior:**
+- Klik item menu → langsung tambah ke keranjang (tanpa modal detail)
+- Badge hijau di sudut menu item menunjukkan jumlah di keranjang
+- Setelah submit: modal sukses dengan Order ID, tombol "Buat Pesanan Baru"
+- Warna aksen: **Emerald** (hijau) untuk membedakan dari admin (amber)
+- Pesanan langsung terkirim ke KDS via WebSocket
 
 ---
 
@@ -545,6 +595,15 @@ src/
 │           ├── RevenueChart.jsx
 │           ├── MenuTable.jsx
 │           └── TableGrid.jsx
+│
+│   └── cashier/            ← Cashier POS
+│       ├── pages/
+│       │   ├── CashierLoginPage.jsx
+│       │   └── CashierPOSPage.jsx
+│       ├── hooks/
+│       │   └── useCashierCart.js
+│       └── components/
+│           └── CashierGuard.jsx
 │
 ├── shared/                ← Shared across all apps
 │   ├── components/
