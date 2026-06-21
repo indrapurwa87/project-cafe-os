@@ -10,6 +10,8 @@ import menuRoutes from './routes/menu.routes.js'
 import tableRoutes from './routes/table.routes.js'
 import orderRoutes from './routes/order.routes.js'
 import userRoutes from './routes/user.routes.js'
+import superRoutes from './routes/super.routes.js'
+import { tenantMiddleware } from './middlewares/tenantMiddleware.js'
 
 dotenv.config()
 
@@ -40,11 +42,12 @@ app.use((req, res, next) => {
 })
 
 // Routes configuration
-app.use('/api/auth', authRoutes)
-app.use('/api/menu', menuRoutes)
-app.use('/api/tables', tableRoutes)
-app.use('/api/orders', orderRoutes(io))
-app.use('/api/users', userRoutes)
+app.use('/api/super', superRoutes)
+app.use('/api/auth', tenantMiddleware, authRoutes)
+app.use('/api/menu', tenantMiddleware, menuRoutes)
+app.use('/api/tables', tenantMiddleware, tableRoutes)
+app.use('/api/orders', tenantMiddleware, orderRoutes(io))
+app.use('/api/users', tenantMiddleware, userRoutes)
 
 // Base Test Route
 app.get('/api/health', (req, res) => {

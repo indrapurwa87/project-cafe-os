@@ -8,7 +8,7 @@ import Button from '@/shared/components/Button'
 import EmptyState from '@/shared/components/EmptyState'
 
 export default function CartPage() {
-  const { tableId } = useParams()
+  const { tableId, tenantSlug } = useParams()
   const navigate = useNavigate()
   const { name, tableNumber } = useCustomerStore()
   const { items, kitchenNote, updateQty, removeItem, setKitchenNote, subtotal, tax, total } = useCartStore()
@@ -27,7 +27,7 @@ export default function CartPage() {
             title="Keranjangmu kosong"
             description="Yuk, pilih menu favoritmu dulu!"
             action={
-              <Button onClick={() => navigate(`/menu/${tableId}`)}>
+              <Button onClick={() => navigate(`/c/${tenantSlug}/menu/${tableId}`)}>
                 Lihat Menu
               </Button>
             }
@@ -147,7 +147,7 @@ export default function CartPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-surface-warm/95 backdrop-blur-sm border-t border-ink-placeholder/10 px-4 py-4 max-w-md mx-auto safe-pb">
         <Button
           size="lg"
-          onClick={() => navigate(`/menu/${tableId}/payment`)}
+          onClick={() => navigate(`/c/${tenantSlug}/menu/${tableId}/payment`)}
         >
           Pilih Cara Bayar →
         </Button>

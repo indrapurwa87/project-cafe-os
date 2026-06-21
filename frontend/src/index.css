@@ -143,3 +143,46 @@
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .safe-pb { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
 }
+
+/* ─── Print Styles ─── */
+@media print {
+  /* Hilangkan margin browser default untuk print */
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Sembunyikan root app utama */
+  #root {
+    display: none !important;
+  }
+  
+  /* Tampilkan struk cetak */
+  #receipt-print-area {
+    display: block !important;
+    width: 58mm; /* Ukuran printer thermal standar */
+    margin: 0 auto;
+    padding: 4mm 2mm;
+    box-sizing: border-box;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+    line-height: 1.3;
+    color: #000 !important;
+    background: #fff !important;
+  }
+}
+
+/* Sembunyikan struk di layar biasa */
+@media screen {
+  #receipt-print-area {
+    display: none !important;
+  }
+}
+

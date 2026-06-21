@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Volume2, VolumeX, Clock, LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { MOCK_MENU, MOCK_CATEGORIES } from '@/shared/mock/mockData'
 import OrderTicket from '../components/OrderTicket'
 import api from '@/shared/api/axios'
@@ -15,6 +15,7 @@ const TABS = [
 
 export default function KitchenPage() {
   const navigate = useNavigate()
+  const { tenantSlug } = useParams()
   const [activeTab, setActiveTab] = useState('pending')
   const [soundOn, setSoundOn] = useState(true)
   const [now, setNow] = useState(Date.now())
@@ -116,7 +117,7 @@ export default function KitchenPage() {
             {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </button>
           <button
-            onClick={() => { localStorage.removeItem('cafeos_kitchen_token'); navigate('/kitchen/login') }}
+            onClick={() => { localStorage.removeItem('cafeos_kitchen_token'); navigate(`/c/${tenantSlug}/kitchen/login`) }}
             className="p-2 rounded-lg hover:bg-gray-800 text-gray-400"
           >
             <LogOut className="w-5 h-5" />

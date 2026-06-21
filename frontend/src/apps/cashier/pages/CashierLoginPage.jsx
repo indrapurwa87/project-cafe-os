@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Coffee, User, Lock, Loader2, Monitor } from 'lucide-react'
 import api from '@/shared/api/axios'
 
 export default function CashierLoginPage() {
   const navigate = useNavigate()
+  const { tenantSlug } = useParams()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,7 +21,7 @@ export default function CashierLoginPage() {
       const res = await api.post('/auth/login/cashier', { username, password })
       localStorage.setItem('cafeos_cashier_token', res.data.token)
       localStorage.setItem('cafeos_cashier_user', JSON.stringify(res.data.user))
-      navigate('/cashier', { replace: true })
+      navigate(`/c/${tenantSlug}/cashier`, { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || 'Login gagal. Periksa koneksi Anda.')
     } finally {

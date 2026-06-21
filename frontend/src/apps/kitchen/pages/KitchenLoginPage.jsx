@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Delete } from 'lucide-react'
 import { MOCK_CREDENTIALS } from '@/shared/mock/mockData'
@@ -10,6 +10,7 @@ const PINS = ['1','2','3','4','5','6','7','8','9','','0','⌫']
 
 export default function KitchenLoginPage() {
   const navigate = useNavigate()
+  const { tenantSlug } = useParams()
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -19,7 +20,7 @@ export default function KitchenLoginPage() {
     try {
       const response = await api.post('/auth/login/kitchen', { pin: fullPin })
       localStorage.setItem('cafeos_kitchen_token', response.data.token)
-      navigate('/kitchen', { replace: true })
+      navigate(`/c/${tenantSlug}/kitchen`, { replace: true })
     } catch (err) {
       setError(true)
       toast.error(err.response?.data?.message || 'PIN salah. Gunakan: 123456')

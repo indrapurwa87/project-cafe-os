@@ -32,37 +32,49 @@ import CashierLoginPage from './apps/cashier/pages/CashierLoginPage'
 import CashierPOSPage   from './apps/cashier/pages/CashierPOSPage'
 import CashierGuard     from './apps/cashier/components/CashierGuard'
 
+// Super Admin
+import SuperAdminLoginPage from './apps/super-admin/pages/SuperAdminLoginPage'
+import SuperAdminDashboard from './apps/super-admin/pages/SuperAdminDashboard'
+import SuperAdminGuard     from './apps/super-admin/components/SuperAdminGuard'
+
 export default function App() {
   return (
     <BrowserRouter>
       <Toaster />
       <Routes>
-        {/* Default */}
-        <Route path="/" element={<Navigate to="/menu" replace />} />
+        {/* Default redirect to super-admin */}
+        <Route path="/" element={<Navigate to="/super-admin" replace />} />
 
-        {/* ── Customer PWA ── */}
-        <Route path="/menu"                       element={<SplashPage />} />
-        <Route path="/menu/:tableId/identify"     element={<IdentityPage />} />
-        <Route path="/menu/:tableId"              element={<MenuPage />} />
-        <Route path="/menu/:tableId/cart"         element={<CartPage />} />
-        <Route path="/menu/:tableId/payment"      element={<PaymentPage />} />
-        <Route path="/order/:orderId/status"      element={<OrderStatusPage />} />
+        {/* ── Super Admin SaaS Dashboard ── */}
+        <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+        <Route path="/super-admin" element={
+          <SuperAdminGuard><SuperAdminDashboard /></SuperAdminGuard>
+        } />
 
-        {/* ── Kitchen ── */}
-        <Route path="/kitchen/login" element={<KitchenLoginPage />} />
-        <Route path="/kitchen" element={
+        {/* ── Tenant Scoped Routes ── */}
+        {/* Customer PWA */}
+        <Route path="/c/:tenantSlug/menu"                       element={<SplashPage />} />
+        <Route path="/c/:tenantSlug/menu/:tableId/identify"     element={<IdentityPage />} />
+        <Route path="/c/:tenantSlug/menu/:tableId"              element={<MenuPage />} />
+        <Route path="/c/:tenantSlug/menu/:tableId/cart"         element={<CartPage />} />
+        <Route path="/c/:tenantSlug/menu/:tableId/payment"      element={<PaymentPage />} />
+        <Route path="/c/:tenantSlug/order/:orderId/status"      element={<OrderStatusPage />} />
+
+        {/* Kitchen */}
+        <Route path="/c/:tenantSlug/kitchen/login" element={<KitchenLoginPage />} />
+        <Route path="/c/:tenantSlug/kitchen" element={
           <KitchenGuard><KitchenPage /></KitchenGuard>
         } />
 
-        {/* ── Cashier POS ── */}
-        <Route path="/cashier/login" element={<CashierLoginPage />} />
-        <Route path="/cashier" element={
+        {/* Cashier POS */}
+        <Route path="/c/:tenantSlug/cashier/login" element={<CashierLoginPage />} />
+        <Route path="/c/:tenantSlug/cashier" element={
           <CashierGuard><CashierPOSPage /></CashierGuard>
         } />
 
-        {/* ── Admin ── */}
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin" element={
+        {/* Admin Dashboard */}
+        <Route path="/c/:tenantSlug/admin/login" element={<AdminLoginPage />} />
+        <Route path="/c/:tenantSlug/admin" element={
           <AdminGuard><AdminLayout /></AdminGuard>
         }>
           <Route index          element={<DashboardPage />} />
@@ -76,7 +88,7 @@ export default function App() {
         </Route>
 
         {/* 404 */}
-        <Route path="*" element={<Navigate to="/menu" replace />} />
+        <Route path="*" element={<Navigate to="/super-admin" replace />} />
       </Routes>
     </BrowserRouter>
   )

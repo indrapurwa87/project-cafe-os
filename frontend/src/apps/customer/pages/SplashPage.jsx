@@ -1,15 +1,18 @@
-import { useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { AlertTriangle } from 'lucide-react'
 import { MOCK_TABLE } from '@/shared/mock/mockData'
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import api from '@/shared/api/axios'
 
 export default function SplashPage() {
   const [searchParams] = useSearchParams()
+  const { tenantSlug } = useParams()
   const navigate = useNavigate()
   const tableParam = searchParams.get('table')
   const { name, rememberMe, setTable } = useCustomerStore()
+  const [tableError, setTableError] = useState(false)
 
   useEffect(() => {
     const fetchTableData = async () => {
@@ -20,20 +23,13 @@ export default function SplashPage() {
         setTable({ tableId: table.id, tableNumber: table.table_number })
         
         if (rememberMe && name) {
-          navigate(`/menu/${table.id}`, { replace: true })
+          navigate(`/c/${tenantSlug}/menu/${table.id}`, { replace: true })
         } else {
-          navigate(`/menu/${table.id}/identify`, { replace: true })
+          navigate(`/c/${tenantSlug}/menu/${table.id}/identify`, { replace: true })
         }
       } catch (error) {
-        console.error('Failed to verify table from backend, using fallback:', error)
-        const table = { ...MOCK_TABLE, id: id }
-        setTable({ tableId: table.id, tableNumber: table.table_number })
-        
-        if (rememberMe && name) {
-          navigate(`/menu/${table.id}`, { replace: true })
-        } else {
-          navigate(`/menu/${table.id}/identify`, { replace: true })
-        }
+        console.error('Failed to verify table from backend:', error)
+        setTableError(true)
       }
     }
 
@@ -42,7 +38,23 @@ export default function SplashPage() {
     }, 1500)
 
     return () => clearTimeout(timer)
-  }, [tableParam, name, rememberMe, navigate, setTable])
+  }, [tableParam, name, rememberMe, navigate, setTable, tenantSlug])
+
+  if (tableError) {
+    return (
+      <div className="page-customer flex flex-col items-center justify-center min-h-dvh bg-gradient-to-b from-brand-50 to-surface-warm p-6">
+        <div className="bg-surface rounded-2xl shadow-card border border-brand-100 p-8 text-center max-w-sm space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-200">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="font-heading font-extrabold text-xl text-ink-primary">Meja Tidak Terdaftar</h2>
+          <p className="text-xs text-ink-secondary leading-relaxed">
+            Nomor meja ini tidak terdaftar di sistem kami. Silakan hubungi pelayan atau periksa kembali QR Code meja Anda.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="page-customer flex flex-col items-center justify-center min-h-dvh bg-gradient-to-b from-brand-50 to-surface-warm">

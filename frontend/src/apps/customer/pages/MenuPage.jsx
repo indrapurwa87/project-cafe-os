@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search } from 'lucide-react'
+import { Search, AlertTriangle } from 'lucide-react'
 
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import { useCartStore } from '@/shared/hooks/useCartStore'
@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/shared/api/axios'
 
 export default function MenuPage() {
-  const { tableId } = useParams()
+  const { tableId, tenantSlug } = useParams()
   const navigate = useNavigate()
   const { name, tableNumber, setTable } = useCustomerStore()
   const itemCount = useCartStore(s => s.itemCount)
@@ -24,13 +24,17 @@ export default function MenuPage() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
+  const [tableError, setTableError] = useState(false)
 
   // Fetch table info from backend if not in store (direct QR scan bypass)
   useEffect(() => {
     if (!tableNumber && tableId) {
       api.get(`/tables/${tableId}`)
         .then(res => setTable({ tableId: String(res.data.id), tableNumber: res.data.table_number }))
-        .catch(() => setTable({ tableId, tableNumber: tableId }))
+        .catch((err) => {
+          console.error('Table verification failed:', err)
+          setTableError(true)
+        })
     }
   }, [tableId, tableNumber, setTable])
 
@@ -52,9 +56,25 @@ export default function MenuPage() {
     }
   })
 
+  if (tableError) {
+    return (
+      <div className="page-customer flex flex-col items-center justify-center min-h-dvh bg-gradient-to-b from-brand-50 to-surface-warm p-6">
+        <div className="bg-surface rounded-2xl shadow-card border border-brand-100 p-8 text-center max-w-sm space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-200">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="font-heading font-extrabold text-xl text-ink-primary">Meja Tidak Terdaftar</h2>
+          <p className="text-xs text-ink-secondary leading-relaxed">
+            Nomor meja ini tidak terdaftar di sistem kami. Silakan hubungi pelayan atau periksa kembali QR Code meja Anda.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   // Guard — jika belum isi identitas
   if (!name) {
-    return <Navigate to={`/menu/${tableId}/identify`} replace />
+    return <Navigate to={`/c/${tenantSlug}/menu/${tableId}/identify`} replace />
   }
 
   const handleSearch = debounce((val) => setSearchQuery(val), 300)
@@ -159,7 +179,7 @@ export default function MenuPage() {
         {itemCount > 0 && (
           <CartFAB
             count={itemCount}
-            onClick={() => navigate(`/menu/${tableId}/cart`)}
+            onClick={() => navigate(`/c/${tenantSlug}/menu/${tableId}/cart`)}
           />
         )}
       </AnimatePresence>

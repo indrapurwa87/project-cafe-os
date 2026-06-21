@@ -8,6 +8,7 @@ import { toast } from '@/shared/components/Toast'
 import { useForm } from 'react-hook-form'
 import { cn } from '@/shared/utils/cn'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 import api from '@/shared/api/axios'
 
 const BASE_URL = window.location.origin
@@ -51,10 +52,10 @@ function TableCard({ table, onShowQR }) {
   )
 }
 
-function QRModal({ table, onClose }) {
+function QRModal({ table, tenantSlug, onClose }) {
   if (!table) return null
   // QR URL points to menu/{tableId} — use table.id (numeric primary key)
-  const url = `${BASE_URL}/menu/${table.id}`
+  const url = `${BASE_URL}/c/${tenantSlug}/menu/${table.id}`
 
   const downloadQR = () => {
     const canvas = document.getElementById('qr-canvas')
@@ -99,6 +100,7 @@ function QRModal({ table, onClose }) {
 }
 
 export default function TablesPage() {
+  const { tenantSlug } = useParams()
   const [addOpen, setAddOpen] = useState(false)
   const [qrTable, setQrTable] = useState(null)
   const { register, handleSubmit, reset } = useForm()
@@ -167,7 +169,7 @@ export default function TablesPage() {
       </Modal>
 
       {/* QR Modal */}
-      <QRModal table={qrTable} onClose={() => setQrTable(null)} />
+      <QRModal table={qrTable} tenantSlug={tenantSlug} onClose={() => setQrTable(null)} />
     </div>
   )
 }

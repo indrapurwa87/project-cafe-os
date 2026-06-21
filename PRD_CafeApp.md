@@ -367,7 +367,7 @@ Pelanggan pilih metode bayar
 
 ### Phase 4 — Enhancement (Bulan 4+)
 - [ ] Loyalty program / poin pelanggan
-- [ ] Integrasi printer struk thermal
+- [x] Integrasi printer struk thermal
 - [ ] Multiple branch support
 - [ ] Mobile app native (React Native)
 

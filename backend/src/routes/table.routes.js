@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import pool from '../config/db.js'
 import { protect } from '../middlewares/authMiddleware.js'
 
 const router = Router()
@@ -7,7 +6,7 @@ const router = Router()
 // 1. Get all tables (admin)
 router.get('/', protect(['admin']), async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM tables ORDER BY table_number ASC')
+    const [rows] = await req.db.query('SELECT * FROM tables ORDER BY table_number ASC')
     return res.json(rows)
   } catch (error) {
     console.error('Get Tables Error:', error)
@@ -19,7 +18,7 @@ router.get('/', protect(['admin']), async (req, res) => {
 router.get('/:id', async (req, res) => {
   const { id } = req.params
   try {
-    const [rows] = await pool.query('SELECT * FROM tables WHERE id = ?', [id])
+    const [rows] = await req.db.query('SELECT * FROM tables WHERE id = ?', [id])
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Meja tidak ditemukan.' })
     }
@@ -39,14 +38,14 @@ router.post('/', protect(['admin']), async (req, res) => {
   }
 
   try {
-    const [existing] = await pool.query('SELECT * FROM tables WHERE table_number = ?', [table_number])
+    const [existing] = await req.db.query('SELECT * FROM tables WHERE table_number = ?', [table_number])
     if (existing.length > 0) {
       return res.status(400).json({ message: `Meja nomor ${table_number} sudah ada.` })
     }
 
     const qr_code_url = `http://localhost:3000/menu/${table_number}` // mock dynamic url for QR
 
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO tables (table_number, capacity, qr_code_url, status) VALUES (?, ?, ?, ?)',
       [table_number, capacity || 4, qr_code_url, 'available']
     )

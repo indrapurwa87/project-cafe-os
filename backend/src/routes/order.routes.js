@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import pool from '../config/db.js'
 import { protect } from '../middlewares/authMiddleware.js'
 
 export default function(io) {
@@ -22,7 +21,7 @@ export default function(io) {
     }
 
     const orderId = `ord-${Date.now()}`
-    const connection = await pool.getConnection()
+    const connection = await req.db.getConnection()
 
     try {
       await connection.beginTransaction()
@@ -107,7 +106,7 @@ export default function(io) {
   router.get('/', async (req, res) => {
     try {
       // Query orders with table numbers
-      const [orders] = await pool.query(
+      const [orders] = await req.db.query(
         `SELECT o.*, t.table_number 
          FROM orders o 
          JOIN tables t ON o.table_id = t.id 
@@ -117,7 +116,7 @@ export default function(io) {
       // Retrieve items for each order
       const ordersWithItems = []
       for (const order of orders) {
-        const [items] = await pool.query(
+        const [items] = await req.db.query(
           `SELECT oi.quantity as qty, oi.notes, oi.price, oi.subtotal, m.name 
            FROM order_items oi 
            JOIN menu_items m ON oi.menu_item_id = m.id 
@@ -162,7 +161,7 @@ export default function(io) {
     }
 
     try {
-      await pool.query('UPDATE orders SET status = ? WHERE id = ?', [status, id])
+      await req.db.query('UPDATE orders SET status = ? WHERE id = ?', [status, id])
 
       // Broadcast changes
       io.emit('order:status_changed', { orderId: id, status })
@@ -179,7 +178,7 @@ export default function(io) {
     const { id } = req.params
 
     try {
-      await pool.query("UPDATE orders SET payment_status = 'paid' WHERE id = ?", [id])
+      await req.db.query("UPDATE orders SET payment_status = 'paid' WHERE id = ?", [id])
       io.emit('order:status_changed', { orderId: id, paymentStatus: 'paid' })
       return res.json({ success: true, message: 'Pembayaran dikonfirmasi.' })
     } catch (error) {
@@ -192,31 +191,31 @@ export default function(io) {
   router.get('/stats', async (req, res) => {
     try {
       // 1. Total revenue today
-      const [revRows] = await pool.query(
+      const [revRows] = await req.db.query(
         "SELECT SUM(total_amount) as total FROM orders WHERE payment_status = 'paid' AND DATE(created_at) = CURDATE()"
       )
       const revenueToday = revRows[0]?.total || 0
 
       // 2. Orders today
-      const [ordRows] = await pool.query(
+      const [ordRows] = await req.db.query(
         "SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURDATE()"
       )
       const ordersToday = ordRows[0]?.count || 0
 
       // 3. Active tables (occupied table count)
-      const [tableRows] = await pool.query(
+      const [tableRows] = await req.db.query(
         "SELECT COUNT(DISTINCT table_id) as count FROM orders WHERE status IN ('pending', 'processing', 'ready')"
       )
       const activeTables = tableRows[0]?.count || 0
 
-      const [totalTablesRow] = await pool.query("SELECT COUNT(*) as count FROM tables")
+      const [totalTablesRow] = await req.db.query("SELECT COUNT(*) as count FROM tables")
       const totalTables = totalTablesRow[0]?.count || 10
 
       // 4. Average order value today
       const avgOrderValue = ordersToday > 0 ? Math.round(revenueToday / ordersToday) : 0
 
       // 5. Hourly revenue breakdown (for chart)
-      const [hourlyRows] = await pool.query(
+      const [hourlyRows] = await req.db.query(
         `SELECT DATE_FORMAT(created_at, '%H:00') as hour, SUM(total_amount) as revenue 
          FROM orders 
          WHERE payment_status = 'paid' AND DATE(created_at) = CURDATE()
@@ -225,7 +224,7 @@ export default function(io) {
       )
 
       // 6. Top selling items today
-      const [topItemRows] = await pool.query(
+      const [topItemRows] = await req.db.query(
         `SELECT m.name, SUM(oi.quantity) as quantity 
          FROM order_items oi 
          JOIN menu_items m ON oi.menu_item_id = m.id 
@@ -259,7 +258,7 @@ export default function(io) {
     const { id } = req.params
 
     try {
-      const [rows] = await pool.query(
+      const [rows] = await req.db.query(
         `SELECT o.*, t.table_number 
          FROM orders o 
          JOIN tables t ON o.table_id = t.id 
@@ -274,7 +273,7 @@ export default function(io) {
       const order = rows[0]
 
       // Fetch items
-      const [items] = await pool.query(
+      const [items] = await req.db.query(
         `SELECT oi.quantity as qty, m.name 
          FROM order_items oi 
          JOIN menu_items m ON oi.menu_item_id = m.id 

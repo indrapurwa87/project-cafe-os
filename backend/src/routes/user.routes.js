@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
-import pool from '../config/db.js'
 import { protect } from '../middlewares/authMiddleware.js'
 
 const router = Router()
@@ -8,7 +7,7 @@ const router = Router()
 // 1. Get all users (admin only — exclude passwords)
 router.get('/', protect(['admin']), async (req, res) => {
   try {
-    const [rows] = await pool.query(
+    const [rows] = await req.db.query(
       'SELECT id, username, role, created_at FROM users ORDER BY created_at ASC'
     )
     return res.json(rows)
@@ -32,13 +31,13 @@ router.post('/', protect(['admin']), async (req, res) => {
 
   try {
     // Check for duplicate username
-    const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username])
+    const [existing] = await req.db.query('SELECT id FROM users WHERE username = ?', [username])
     if (existing.length > 0) {
       return res.status(400).json({ message: `Username "${username}" sudah digunakan.` })
     }
 
     const hashed = await bcrypt.hash(password, 10)
-    const [result] = await pool.query(
+    const [result] = await req.db.query(
       'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
       [username, hashed, role]
     )
@@ -64,7 +63,7 @@ router.patch('/:id/password', protect(['admin']), async (req, res) => {
 
   try {
     const hashed = await bcrypt.hash(password, 10)
-    await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashed, id])
+    await req.db.query('UPDATE users SET password = ? WHERE id = ?', [hashed, id])
     return res.json({ message: 'Password berhasil diubah.' })
   } catch (error) {
     console.error('Update Password Error:', error)
@@ -82,12 +81,12 @@ router.delete('/:id', protect(['admin']), async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query('SELECT id FROM users WHERE id = ?', [id])
+    const [rows] = await req.db.query('SELECT id FROM users WHERE id = ?', [id])
     if (rows.length === 0) {
       return res.status(404).json({ message: 'User tidak ditemukan.' })
     }
 
-    await pool.query('DELETE FROM users WHERE id = ?', [id])
+    await req.db.query('DELETE FROM users WHERE id = ?', [id])
     return res.json({ message: 'User berhasil dihapus.' })
   } catch (error) {
     console.error('Delete User Error:', error)

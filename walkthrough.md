@@ -36,3 +36,10 @@ Kami telah berhasil mengimplementasikan Modul Kasir (Cashier POS) beserta dengan
    - Login dengan username `kasir01` dan password `kasir123`.
    - Berhasil login dan diarahkan ke dashboard POS `/cashier`.
    - Nama pengguna `kasir01` tampil di pojok kanan atas POS.
+
+3. **Fitur Cetak Struk (Baru)**:
+   - Setelah kasir berhasil membuat pesanan dengan mengklik tombol **Buat Pesanan**, modal sukses **Pesanan Berhasil!** akan muncul.
+   - Di dalam modal sukses tersebut, sekarang terdapat tombol **Cetak Struk** dengan ikon printer di atas tombol "Buat Pesanan Baru".
+   - Mengklik **Cetak Struk** akan membuka dialog cetak bawaan browser (`window.print()`).
+   - Berkat integrasi `@media print` pada CSS global dan React Portal, pratinjau cetakan (print preview) akan secara otomatis menyembunyikan seluruh antarmuka aplikasi utama (`#root`) dan hanya menampilkan struk thermal dengan lebar 58mm yang rapi, berformat monospace, lengkap dengan detail pesanan, total biaya, meja, pelanggan, dan nama kasir.
+

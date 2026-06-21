@@ -39,7 +39,7 @@ const PAYMENT_METHODS = [
 ]
 
 export default function PaymentPage() {
-  const { tableId } = useParams()
+  const { tableId, tenantSlug } = useParams()
   const navigate = useNavigate()
   const { name, phone, tableNumber } = useCustomerStore()
   const { items, kitchenNote, total, clearCart } = useCartStore()
@@ -62,7 +62,7 @@ export default function PaymentPage() {
       if (response.data.success) {
         clearCart()
         toast.success('Pesanan berhasil dibuat!')
-        navigate(`/order/${response.data.orderId}/status`, { replace: true })
+        navigate(`/c/${tenantSlug}/order/${response.data.orderId}/status`, { replace: true })
       } else {
         toast.error(response.data.message || 'Gagal mengirim pesanan')
       }

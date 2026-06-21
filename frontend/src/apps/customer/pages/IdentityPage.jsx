@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { User, Phone, ChevronRight } from 'lucide-react'
+import { User, Phone, ChevronRight, AlertTriangle } from 'lucide-react'
 import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import Input from '@/shared/components/Input'
 import Button from '@/shared/components/Button'
@@ -23,17 +23,21 @@ const schema = z.object({
 })
 
 export default function IdentityPage() {
-  const { tableId } = useParams()
+  const { tableId, tenantSlug } = useParams()
   const navigate = useNavigate()
   const { tableNumber, setTable, setCustomer } = useCustomerStore()
   const [submitting, setSubmitting] = useState(false)
+  const [tableError, setTableError] = useState(false)
 
   // Fetch table info from backend if not yet in store (direct QR scan)
   useEffect(() => {
     if (!tableNumber && tableId) {
       api.get(`/tables/${tableId}`)
         .then(res => setTable({ tableId: String(res.data.id), tableNumber: res.data.table_number }))
-        .catch(() => setTable({ tableId, tableNumber: tableId })) // fallback: use tableId as display number
+        .catch((err) => {
+          console.error('Table verification failed:', err)
+          setTableError(true)
+        })
     }
   }, [tableId, tableNumber, setTable])
 
@@ -51,7 +55,23 @@ export default function IdentityPage() {
       tableNumber,
       rememberMe: values.rememberMe,
     })
-    navigate(`/menu/${tableId}`, { replace: true })
+    navigate(`/c/${tenantSlug}/menu/${tableId}`, { replace: true })
+  }
+
+  if (tableError) {
+    return (
+      <div className="page-customer flex flex-col items-center justify-center min-h-dvh bg-gradient-to-b from-brand-50 to-surface-warm p-6">
+        <div className="bg-surface rounded-2xl shadow-card border border-brand-100 p-8 text-center max-w-sm space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-200">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="font-heading font-extrabold text-xl text-ink-primary">Meja Tidak Terdaftar</h2>
+          <p className="text-xs text-ink-secondary leading-relaxed">
+            Nomor meja ini tidak terdaftar di sistem kami. Silakan hubungi pelayan atau periksa kembali QR Code meja Anda.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,6 +18,7 @@ const schema = z.object({
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
+  const { tenantSlug } = useParams()
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
 
@@ -35,7 +36,7 @@ export default function AdminLoginPage() {
       const response = await api.post('/auth/login/admin', { email, password })
       localStorage.setItem('cafeos_admin_token', response.data.token)
       toast.success('Selamat datang, Admin!')
-      navigate('/admin', { replace: true })
+      navigate(`/c/${tenantSlug}/admin`, { replace: true })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Email atau password salah')
     } finally {

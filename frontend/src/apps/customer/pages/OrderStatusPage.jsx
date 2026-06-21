@@ -18,7 +18,7 @@ const STEPS = [
 const STATUS_SEQ = ['pending', 'processing', 'ready', 'done']
 
 export default function OrderStatusPage() {
-  const { orderId } = useParams()
+  const { orderId, tenantSlug } = useParams()
   const navigate = useNavigate()
   const { name, tableNumber, tableId } = useCustomerStore()
   const [status, setStatus] = useState('pending')
@@ -157,7 +157,7 @@ export default function OrderStatusPage() {
         <Button
           variant="secondary"
           size="lg"
-          onClick={() => navigate(`/menu/${tableId}`)}
+          onClick={() => navigate(`/c/${tenantSlug}/menu/${tableId}`)}
           icon={<Plus className="w-5 h-5" />}
         >
           Tambah Pesanan

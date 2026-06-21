@@ -20,16 +20,16 @@ export default {
           900: '#78350F',
         },
         surface: {
-          DEFAULT: '#FFFFFF',
-          muted:   '#F9FAFB',
-          warm:    '#FFFBF5',
-          card:    '#FFFFFF',
+          DEFAULT: '#FFFDF9', // soft warm off-white
+          muted:   '#F3EDE2', // warm beige/muted cream
+          warm:    '#FAF5EC', // cozy warm cream (book-paper style)
+          card:    '#FFFDF9',
         },
         ink: {
-          primary:   '#1C1917',
-          secondary: '#57534E',
-          muted:     '#A8A29E',
-          placeholder:'#D6D3D1',
+          primary:   '#2C2520', // rich espresso dark brown
+          secondary: '#5C5047', // warm walnut medium brown
+          muted:     '#9E8F85', // warm sand light brown
+          placeholder:'#C8BDB3', // warm stone placeholder
         },
         status: {
           new:       '#F59E0B',

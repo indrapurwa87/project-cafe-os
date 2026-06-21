@@ -385,7 +385,7 @@ CaféOS
 **Behavior:**
 - Klik item menu → langsung tambah ke keranjang (tanpa modal detail)
 - Badge hijau di sudut menu item menunjukkan jumlah di keranjang
-- Setelah submit: modal sukses dengan Order ID, tombol "Buat Pesanan Baru"
+- Setelah submit: modal sukses dengan Order ID, tombol "Cetak Struk", dan tombol "Buat Pesanan Baru"
 - Warna aksen: **Emerald** (hijau) untuk membedakan dari admin (amber)
 - Pesanan langsung terkirim ke KDS via WebSocket
 

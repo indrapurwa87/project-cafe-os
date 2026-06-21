@@ -1,19 +1,20 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import ReactDOM from 'react-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, ChefHat,
   LogOut, Coffee, Monitor, MessageSquare, CheckCircle2,
-  X, User, Phone, Hash
+  X, User, Phone, Hash, Printer
 } from 'lucide-react'
 import api from '@/shared/api/axios'
 import { formatRupiah } from '@/shared/utils/format'
 import { useCashierCart } from '../hooks/useCashierCart'
 import { toast } from '@/shared/components/Toast'
-
 export default function CashierPOSPage() {
   const navigate = useNavigate()
+  const { tenantSlug } = useParams()
   const cart = useCashierCart()
 
   // Form state
@@ -108,7 +109,7 @@ export default function CashierPOSPage() {
   const handleLogout = () => {
     localStorage.removeItem('cafeos_cashier_token')
     localStorage.removeItem('cafeos_cashier_user')
-    navigate('/cashier/login')
+    navigate(`/c/${tenantSlug}/cashier/login`)
   }
 
   const cashierUser = (() => {
@@ -488,6 +489,13 @@ export default function CashierPOSPage() {
                 <p className="font-mono font-bold text-slate-700 text-sm">{lastOrderId}</p>
               </div>
               <button
+                onClick={() => window.print()}
+                className="w-full mb-3 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
+              >
+                <Printer className="w-4 h-4" />
+                Cetak Struk
+              </button>
+              <button
                 onClick={handleNewOrder}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20 text-sm"
               >
@@ -497,6 +505,84 @@ export default function CashierPOSPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Print Receipt Portal ── */}
+      {showSuccess && ReactDOM.createPortal(
+        <div id="receipt-print-area">
+          <div className="text-center mb-4">
+            <h2 className="text-base font-bold uppercase">CaféOS</h2>
+            <p className="text-[10px] text-slate-600">Jl. Pemuda No. 123, Semarang</p>
+            <p className="text-[10px] text-slate-600">Telp: 0812-3456-7890</p>
+          </div>
+
+          <div className="pb-2 mb-2 text-[10px] space-y-0.5" style={{ borderBottom: '1px dashed black' }}>
+            <div className="flex justify-between">
+              <span>No. Order:</span>
+              <span className="font-bold">{lastOrderId}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tanggal:</span>
+              <span>{new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Kasir:</span>
+              <span className="capitalize">{cashierUser.username || 'Kasir'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Meja:</span>
+              <span className="font-bold">Meja {tables.find(t => String(t.id) === String(selectedTable))?.table_number || selectedTable}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Pelanggan:</span>
+              <span>{customerName} {customerPhone ? `(${customerPhone})` : ''}</span>
+            </div>
+          </div>
+
+          <div className="pb-2 mb-2" style={{ borderBottom: '1px dashed black' }}>
+            <div className="text-[10px] font-bold mb-1">Daftar Pesanan:</div>
+            <div className="space-y-2">
+              {cart.items.map(item => (
+                <div key={item.id} className="text-[10px]">
+                  <div className="flex justify-between">
+                    <span className="font-medium">{item.name}</span>
+                    <span>{formatRupiah(item.price * item.qty)}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600 text-[9px] pl-2">
+                    <span>{item.qty} x {formatRupiah(item.price)}</span>
+                  </div>
+                  {item.notes && (
+                    <div className="text-slate-500 text-[9px] pl-2 italic">
+                      * {item.notes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pb-2 mb-2 text-[10px] space-y-1" style={{ borderBottom: '1px dashed black' }}>
+            <div className="flex justify-between">
+              <span>Subtotal:</span>
+              <span>{formatRupiah(cart.subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Pajak (10%):</span>
+              <span>{formatRupiah(cart.tax)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-sm pt-1" style={{ borderTop: '1px dotted black' }}>
+              <span>TOTAL:</span>
+              <span>{formatRupiah(cart.total)}</span>
+            </div>
+          </div>
+
+          <div className="text-center text-[10px] space-y-1 mt-4">
+            <p className="font-bold uppercase">Metode Pembayaran: {paymentMethod === 'cash' ? 'Tunai' : paymentMethod.toUpperCase()}</p>
+            <p className="mt-2 text-slate-500 italic">Terima kasih atas kunjungan Anda!</p>
+            <p className="text-slate-500 italic">Silakan datang kembali</p>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import pool from '../config/db.js'
 
 const router = Router()
 
@@ -23,7 +22,7 @@ router.post('/login/admin', async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE username = ? AND role = ?', [email, 'admin'])
+    const [rows] = await req.db.query('SELECT * FROM users WHERE username = ? AND role = ?', [email, 'admin'])
     if (rows.length === 0) {
       return res.status(401).json({ message: 'Email atau password salah.' })
     }
@@ -59,7 +58,7 @@ router.post('/login/kitchen', async (req, res) => {
 
   try {
     // Get all kitchen users and check PIN against each one
-    const [rows] = await pool.query(
+    const [rows] = await req.db.query(
       'SELECT * FROM users WHERE role = ?',
       ['kitchen']
     )
@@ -106,7 +105,7 @@ router.post('/login/cashier', async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
+    const [rows] = await req.db.query(
       "SELECT * FROM users WHERE username = ? AND role IN ('cashier', 'admin')",
       [username]
     )

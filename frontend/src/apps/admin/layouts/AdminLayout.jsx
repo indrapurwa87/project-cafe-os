@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom'
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag,
   TableProperties, CreditCard, BarChart3,
@@ -20,11 +20,12 @@ const NAV_ITEMS = [
 
 export default function AdminLayout() {
   const navigate = useNavigate()
+  const { tenantSlug } = useParams()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     localStorage.removeItem('cafeos_admin_token')
-    navigate('/admin/login')
+    navigate(`/c/${tenantSlug}/admin/login`)
   }
 
   const SidebarContent = () => (
@@ -44,23 +45,26 @@ export default function AdminLayout() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) => cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
-              isActive
-                ? 'bg-brand-500 text-white shadow-glow'
-                : 'text-slate-400 hover:bg-slate-700 hover:text-white'
-            )}
-          >
-            <Icon className="w-5 h-5 flex-shrink-0" />
-            {label}
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => {
+          const tenantPath = `/c/${tenantSlug}${to}`
+          return (
+            <NavLink
+              key={to}
+              to={tenantPath}
+              end={end}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) => cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                isActive
+                  ? 'bg-brand-500 text-white shadow-glow'
+                  : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+              )}
+            >
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              {label}
+            </NavLink>
+          )
+        })}
       </nav>
 
       {/* Logout */}
