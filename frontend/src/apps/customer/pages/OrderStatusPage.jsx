@@ -6,6 +6,7 @@ import { useCustomerStore } from '@/shared/hooks/useCustomerStore'
 import Button from '@/shared/components/Button'
 import { formatRupiah } from '@/shared/utils/format'
 import api from '@/shared/api/axios'
+import { encodeTableId } from '@/shared/utils/tableHash'
 import { io } from 'socket.io-client'
 
 const STEPS = [
@@ -20,9 +21,11 @@ const STATUS_SEQ = ['pending', 'processing', 'ready', 'done']
 export default function OrderStatusPage() {
   const { orderId, tenantSlug } = useParams()
   const navigate = useNavigate()
-  const { name, tableNumber, tableId } = useCustomerStore()
+  const { tableId } = useCustomerStore()
   const [status, setStatus] = useState('pending')
   const [amount, setAmount] = useState(0)
+  const [customerName, setCustomerName] = useState('')
+  const [orderTableNumber, setOrderTableNumber] = useState('')
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -30,6 +33,8 @@ export default function OrderStatusPage() {
         const response = await api.get(`/orders/${orderId}/status`)
         setStatus(response.data.status)
         setAmount(response.data.totalAmount)
+        setCustomerName(response.data.customerName || '')
+        setOrderTableNumber(response.data.tableNumber || '')
       } catch (error) {
         console.error('Failed to fetch order status', error)
       }
@@ -71,7 +76,7 @@ export default function OrderStatusPage() {
             {status === 'done' ? 'Selamat Menikmati! 🎉' : 'Pesanan Masuk!'}
           </h1>
           <p className="text-ink-secondary text-sm mt-1">
-            Hi {name} · Meja {tableNumber}
+            Hi {customerName} · Meja {orderTableNumber}
           </p>
           <p className="text-xs text-ink-muted font-mono mt-0.5">
             #{String(orderId).slice(-8).toUpperCase()}
@@ -157,7 +162,7 @@ export default function OrderStatusPage() {
         <Button
           variant="secondary"
           size="lg"
-          onClick={() => navigate(`/c/${tenantSlug}/menu/${tableId}`)}
+          onClick={() => navigate(`/c/${tenantSlug}/menu/${encodeTableId(tableId)}`)}
           icon={<Plus className="w-5 h-5" />}
         >
           Tambah Pesanan

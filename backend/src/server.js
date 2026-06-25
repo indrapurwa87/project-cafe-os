@@ -51,7 +51,7 @@ app.use('/api/users', tenantMiddleware, userRoutes)
 
 // Base Test Route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'CaféOS API is running smoothly.' })
+  res.json({ status: 'OK', message: 'CaféPOS API is running smoothly.' })
 })
 
 // WebSocket connections
@@ -72,7 +72,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000
 server.listen(PORT, () => {
   console.log(`-----------------------------------------------------`)
-  console.log(`☕ CaféOS Backend Server running on port ${PORT}`)
+  console.log(`☕ CaféPOS Backend Server running on port ${PORT}`)
   console.log(`➜ REST API: http://localhost:${PORT}/api`)
   console.log(`➜ WebSocket Server: ws://localhost:${PORT}`)
   console.log(`-----------------------------------------------------`)

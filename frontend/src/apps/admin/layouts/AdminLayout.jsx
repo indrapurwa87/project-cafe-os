@@ -37,7 +37,7 @@ export default function AdminLayout() {
             <Coffee className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="font-heading font-bold text-white text-sm">CaféOS</p>
+            <p className="font-heading font-bold text-white text-sm">CaféPOS</p>
             <p className="text-slate-400 text-xs">Admin Panel</p>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function AdminLayout() {
             <div className="w-7 h-7 bg-brand-500 rounded-lg flex items-center justify-center">
               <Coffee className="w-4 h-4 text-white" />
             </div>
-            <span className="font-heading font-bold text-ink-primary">CaféOS Admin</span>
+            <span className="font-heading font-bold text-ink-primary">CaféPOS Admin</span>
           </div>
         </header>
 

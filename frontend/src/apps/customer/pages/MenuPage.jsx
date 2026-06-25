@@ -29,7 +29,7 @@ export default function MenuPage() {
   // Fetch table info from backend if not in store (direct QR scan bypass)
   useEffect(() => {
     if (!tableNumber && tableId) {
-      api.get(`/tables/${tableId}`)
+      api.get(`/tables/h/${tableId}`)
         .then(res => setTable({ tableId: String(res.data.id), tableNumber: res.data.table_number }))
         .catch((err) => {
           console.error('Table verification failed:', err)

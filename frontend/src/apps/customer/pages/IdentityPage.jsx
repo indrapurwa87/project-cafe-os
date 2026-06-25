@@ -32,7 +32,7 @@ export default function IdentityPage() {
   // Fetch table info from backend if not yet in store (direct QR scan)
   useEffect(() => {
     if (!tableNumber && tableId) {
-      api.get(`/tables/${tableId}`)
+      api.get(`/tables/h/${tableId}`)
         .then(res => setTable({ tableId: String(res.data.id), tableNumber: res.data.table_number }))
         .catch((err) => {
           console.error('Table verification failed:', err)
@@ -51,8 +51,8 @@ export default function IdentityPage() {
     setCustomer({
       name: values.name.trim(),
       phone: values.phone.trim(),
-      tableId,
-      tableNumber,
+      tableId: useCustomerStore.getState().tableId,     // preserve real numeric ID from store
+      tableNumber: useCustomerStore.getState().tableNumber,
       rememberMe: values.rememberMe,
     })
     navigate(`/c/${tenantSlug}/menu/${tableId}`, { replace: true })

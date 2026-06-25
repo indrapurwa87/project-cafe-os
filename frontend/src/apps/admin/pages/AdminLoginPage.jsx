@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
           <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto text-3xl mb-3">
             ☕
           </div>
-          <h1 className="font-heading font-bold text-xl text-white">CaféOS Admin</h1>
+          <h1 className="font-heading font-bold text-xl text-white">CaféPOS Admin</h1>
           <p className="text-brand-100 text-sm mt-1">Panel Manajemen</p>
         </div>
 

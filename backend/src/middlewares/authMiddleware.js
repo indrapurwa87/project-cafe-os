@@ -17,8 +17,8 @@ export const protect = (roles = []) => {
 
         req.user = decoded
 
-        // Role check
-        if (roles.length > 0 && !roles.includes(decoded.role)) {
+        // Role check — super-admin bypasses all role restrictions
+        if (roles.length > 0 && decoded.role !== 'super-admin' && !roles.includes(decoded.role)) {
           return res.status(403).json({ message: 'Akses ditolak: Peran tidak sah.' })
         }
 

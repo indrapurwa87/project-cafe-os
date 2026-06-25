@@ -39,9 +39,9 @@ const PAYMENT_METHODS = [
 ]
 
 export default function PaymentPage() {
-  const { tableId, tenantSlug } = useParams()
+  const { tableId: tableHash, tenantSlug } = useParams()
   const navigate = useNavigate()
-  const { name, phone, tableNumber } = useCustomerStore()
+  const { name, phone, tableNumber, tableId: realTableId } = useCustomerStore()
   const { items, kitchenNote, total, clearCart } = useCartStore()
   const [selectedMethod, setSelectedMethod] = useState('qris')
   const [loading, setLoading] = useState(false)
@@ -50,7 +50,7 @@ export default function PaymentPage() {
     setLoading(true)
     try {
       const response = await api.post('/orders', {
-        table_id: tableId,
+        table_id: realTableId,
         customer_name: name,
         customer_phone: phone,
         items: items,

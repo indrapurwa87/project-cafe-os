@@ -20,18 +20,116 @@ export default function KitchenPage() {
   const [soundOn, setSoundOn] = useState(true)
   const [now, setNow] = useState(Date.now())
   const [orders, setOrders] = useState([])
+  const soundOnRef = useRef(true)
 
-  const playNotificationSound = () => {
-    if (soundOn) {
-      try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav')
-        audio.volume = 0.5
-        audio.play()
-      } catch (err) {
-        console.error('Audio play blocked:', err)
+  // Keep ref in sync so socket callbacks always read latest value
+  useEffect(() => { soundOnRef.current = soundOn }, [soundOn])
+
+  // ── Alarm beep sound (tot-tot-tot) using Web Audio API ──
+  const playChimeSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const beepCount = 3
+      const freq = 1800       // High-pitched frequency (Hz)
+      const beepDur = 0.15    // Each beep duration (seconds)
+      const gap = 0.12        // Gap between beeps (seconds)
+
+      for (let i = 0; i < beepCount; i++) {
+        const startTime = ctx.currentTime + i * (beepDur + gap)
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'square'   // Harsh, alarm-like tone
+        osc.frequency.setValueAtTime(freq, startTime)
+        gain.gain.setValueAtTime(0.45, startTime)
+        gain.gain.setValueAtTime(0, startTime + beepDur) // Sharp cut
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(startTime)
+        osc.stop(startTime + beepDur + 0.01)
       }
+
+      setTimeout(() => ctx.close(), 1500)
+    } catch (err) {
+      console.error('Alarm beep failed:', err)
     }
   }
+
+  // ── Voice AI using SpeechSynthesis ──
+  const speakAnnouncement = (tableNumber) => {
+    try {
+      if (!('speechSynthesis' in window)) return
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel()
+
+      const text = `Ada pesanan masuk, Meja ${tableNumber}`
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'id-ID'
+      utterance.rate = 1.0
+      utterance.pitch = 1.0
+      utterance.volume = 1.0
+
+      // Try to pick an Indonesian voice, fallback to default
+      const voices = window.speechSynthesis.getVoices()
+      const idVoice = voices.find(v => v.lang.startsWith('id')) || voices.find(v => v.lang.startsWith('ms')) || null
+      if (idVoice) utterance.voice = idVoice
+
+      window.speechSynthesis.speak(utterance)
+    } catch (err) {
+      console.error('Speech synthesis failed:', err)
+    }
+  }
+
+  // ── Combined notification: chime + voice ──
+  const notifyNewOrder = (tableNumber) => {
+    if (!soundOnRef.current) return
+    playChimeSound()
+    // Slight delay so chime plays first, then voice
+    setTimeout(() => speakAnnouncement(tableNumber), 800)
+  }
+
+  // ── 30-second reminder for pending orders ──
+  const ordersRef = useRef([])
+  const remindedRef = useRef(new Set()) // track which orders have been reminded
+
+  useEffect(() => { ordersRef.current = orders }, [orders])
+
+  useEffect(() => {
+    const reminderInterval = setInterval(() => {
+      if (!soundOnRef.current) return
+
+      const pendingOrders = ordersRef.current.filter(o => o.status === 'pending')
+      if (pendingOrders.length === 0) {
+        remindedRef.current.clear()
+        return
+      }
+
+      // Find first pending order that hasn't been reminded yet in this cycle
+      let target = pendingOrders.find(o => !remindedRef.current.has(o.id))
+
+      // If all have been reminded, reset and start over
+      if (!target) {
+        remindedRef.current.clear()
+        target = pendingOrders[0]
+      }
+
+      remindedRef.current.add(target.id)
+
+      playChimeSound()
+      setTimeout(() => {
+        speakAnnouncement(target.tableNumber)
+      }, 800)
+    }, 20000) // 20 seconds
+
+    return () => clearInterval(reminderInterval)
+  }, [])
+
+  // Ensure voices are loaded (some browsers load them asynchronously)
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices()
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices()
+    }
+  }, [])
 
   const fetchOrders = async () => {
     try {
@@ -50,7 +148,7 @@ export default function KitchenPage() {
     socket.on('order:new', (newOrder) => {
       setOrders(prev => {
         if (prev.some(o => o.id === newOrder.id)) return prev
-        playNotificationSound()
+        notifyNewOrder(newOrder.tableNumber)
         return [newOrder, ...prev]
       })
     })
@@ -60,7 +158,12 @@ export default function KitchenPage() {
         if (data.status === 'done') {
           return prev.filter(o => o.id !== data.orderId)
         }
-        return prev.map(o => o.id === data.orderId ? { ...o, status: data.status } : o)
+        const updated = prev.map(o => o.id === data.orderId ? { ...o, status: data.status } : o)
+        // If order moved out of pending, remove from reminded set
+        if (data.status !== 'pending') {
+          remindedRef.current.delete(data.orderId)
+        }
+        return updated
       })
     })
 
@@ -70,7 +173,7 @@ export default function KitchenPage() {
       clearInterval(t)
       socket.disconnect()
     }
-  }, [soundOn])
+  }, [])
 
   const updateStatus = async (orderId, status) => {
     try {

@@ -54,8 +54,8 @@ function TableCard({ table, onShowQR }) {
 
 function QRModal({ table, tenantSlug, onClose }) {
   if (!table) return null
-  // QR URL points to menu/{tableId} — use table.id (numeric primary key)
-  const url = `${BASE_URL}/c/${tenantSlug}/menu/${table.id}`
+  // QR URL uses hashed table ID for obfuscation
+  const url = `${BASE_URL}/c/${tenantSlug}/menu/${table.hash}`
 
   const downloadQR = () => {
     const canvas = document.getElementById('qr-canvas')

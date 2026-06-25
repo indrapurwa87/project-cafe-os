@@ -135,7 +135,7 @@ export default function SuperAdminDashboard() {
             <Globe className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-heading font-extrabold text-base text-ink-primary">CaféOS Cloud</h1>
+            <h1 className="font-heading font-extrabold text-base text-ink-primary">CaféPOS Cloud</h1>
             <p className="text-xs text-ink-secondary">SaaS Platform Control Center</p>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function SuperAdminDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-ink-primary">Manajemen Client (Tenant)</h3>
-            <p className="text-xs text-ink-secondary mt-0.5">Daftar client penyewa aplikasi CaféOS yang aktif di database MySQL</p>
+            <p className="text-xs text-ink-secondary mt-0.5">Daftar client penyewa aplikasi CaféPOS yang aktif di database MySQL</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}

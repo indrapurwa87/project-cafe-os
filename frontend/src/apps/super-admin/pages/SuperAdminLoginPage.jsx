@@ -47,7 +47,7 @@ export default function SuperAdminLoginPage() {
           <div className="w-14 h-14 bg-brand-100 text-brand-700 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-200">
             <ShieldAlert className="w-7 h-7" />
           </div>
-          <h1 className="font-heading font-extrabold text-2xl text-ink-primary">CaféOS Cloud</h1>
+          <h1 className="font-heading font-extrabold text-2xl text-ink-primary">CaféPOS Cloud</h1>
           <p className="text-sm text-ink-secondary mt-1">Super Admin Control Panel</p>
         </div>
 

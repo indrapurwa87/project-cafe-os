@@ -4,7 +4,7 @@ import { useCartStore } from '@/shared/hooks/useCartStore'
 import { formatRupiah } from '@/shared/utils/format'
 
 export default function CartFAB({ count, onClick }) {
-  const { total } = useCartStore()
+  const { subtotal } = useCartStore()
 
   return (
     <motion.div
@@ -35,7 +35,7 @@ export default function CartFAB({ count, onClick }) {
           </span>
         </div>
         <span className="font-heading font-bold text-base">
-          {formatRupiah(total)} →
+          {formatRupiah(subtotal)} →
         </span>
       </button>
     </motion.div>

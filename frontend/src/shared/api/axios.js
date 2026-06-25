@@ -14,11 +14,29 @@ api.interceptors.request.use((config) => {
     config.headers['X-Tenant-Slug'] = pathParts[2]
   }
 
-  // 2. Attach Authorization token
-  const token = localStorage.getItem('cafeos_super_token')
-             || localStorage.getItem('cafeos_admin_token')
-             || localStorage.getItem('cafeos_kitchen_token')
-             || localStorage.getItem('cafeos_cashier_token')
+  // 2. Attach Authorization token — pick token based on URL context
+  const path = window.location.pathname
+  let token = null
+
+  if (path.startsWith('/super-admin')) {
+    token = localStorage.getItem('cafeos_super_token')
+  } else if (path.includes('/kitchen')) {
+    token = localStorage.getItem('cafeos_kitchen_token')
+        || localStorage.getItem('cafeos_admin_token')
+  } else if (path.includes('/cashier')) {
+    token = localStorage.getItem('cafeos_cashier_token')
+        || localStorage.getItem('cafeos_admin_token')
+  } else if (path.includes('/admin')) {
+    token = localStorage.getItem('cafeos_admin_token')
+  }
+
+  // Fallback: try any available token
+  if (!token) {
+    token = localStorage.getItem('cafeos_super_token')
+        || localStorage.getItem('cafeos_admin_token')
+        || localStorage.getItem('cafeos_kitchen_token')
+        || localStorage.getItem('cafeos_cashier_token')
+  }
   if (token) config.headers.Authorization = `Bearer ${token}`
   
   return config

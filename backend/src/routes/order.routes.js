@@ -283,6 +283,7 @@ export default function(io) {
 
       return res.json({
         id: order.id,
+        customerName: order.customer_name,
         tableNumber: order.table_number,
         status: order.status,
         paymentStatus: order.payment_status,

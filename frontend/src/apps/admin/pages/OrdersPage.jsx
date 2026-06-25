@@ -11,6 +11,23 @@ import { useEffect } from 'react'
 
 const STATUS_FILTERS = ['all', 'pending', 'processing', 'ready', 'done', 'cancelled']
 
+const PAYMENT_LABELS = {
+  qris: '📱 QRIS',
+  gopay: '💚 GoPay',
+  ovo: '💜 OVO',
+  dana: '🔵 DANA',
+  shopeepay: '🧡 ShopeePay',
+  bca: '🏦 VA BCA',
+  bni: '🏦 VA BNI',
+  bri: '🏦 VA BRI',
+  mandiri: '🏦 VA Mandiri',
+  cash: '💵 Tunai',
+}
+
+function paymentLabel(method) {
+  return PAYMENT_LABELS[method] || method || '-'
+}
+
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -100,8 +117,8 @@ export default function OrdersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-ink-placeholder/20 bg-surface-muted">
-                {['#ID', 'Meja', 'Pelanggan', 'Item', 'Total', 'Status', 'Waktu', 'Aksi'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-ink-muted uppercase tracking-wide">
+                {['#ID', 'Meja', 'Pelanggan', 'Item', 'Subtotal', 'Pajak', 'Total', 'Pembayaran', 'Status', 'Waktu', 'Aksi'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-ink-muted uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -110,26 +127,43 @@ export default function OrdersPage() {
             <tbody className="divide-y divide-ink-placeholder/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-ink-muted text-sm">
+                  <td colSpan={11} className="px-4 py-8 text-center text-ink-muted text-sm">
                     <span className="inline-block w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mr-2" />
                     Memuat pesanan...
                   </td>
                 </tr>
-              ) : filtered.map(order => (
+              ) : filtered.map(order => {
+                // totalAmount includes 10% tax: total = subtotal + (subtotal * 0.1)
+                // so subtotal = totalAmount / 1.1
+                const subtotal = Math.round(order.totalAmount / 1.1)
+                const tax = order.totalAmount - subtotal
+
+                return (
                 <tr key={order.id} className="hover:bg-surface-muted transition-colors">
                   <td className="px-4 py-3 text-xs font-mono text-ink-muted">
                     #{String(order.id).slice(-4).toUpperCase()}
                   </td>
-                  <td className="px-4 py-3 font-heading font-bold text-ink-primary">
+                  <td className="px-4 py-3 font-heading font-bold text-ink-primary whitespace-nowrap">
                     Meja {order.tableNumber}
                   </td>
                   <td className="px-4 py-3 text-sm text-ink-secondary">{order.customerName}</td>
                   <td className="px-4 py-3 text-sm text-ink-secondary">{order.itemCount} item</td>
-                  <td className="px-4 py-3 font-heading font-bold text-sm text-brand-600">
+                  <td className="px-4 py-3 text-sm text-ink-secondary whitespace-nowrap">
+                    {formatRupiah(subtotal)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-ink-muted whitespace-nowrap">
+                    {formatRupiah(tax)}
+                  </td>
+                  <td className="px-4 py-3 font-heading font-bold text-sm text-brand-600 whitespace-nowrap">
                     {formatRupiah(order.totalAmount)}
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-surface-muted px-2.5 py-1 rounded-full text-ink-secondary">
+                      {paymentLabel(order.paymentMethod)}
+                    </span>
+                  </td>
                   <td className="px-4 py-3"><Badge status={order.status} /></td>
-                  <td className="px-4 py-3 text-xs text-ink-muted">
+                  <td className="px-4 py-3 text-xs text-ink-muted whitespace-nowrap">
                     {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="px-4 py-3">
@@ -159,7 +193,8 @@ export default function OrdersPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
           {!isLoading && filtered.length === 0 && (

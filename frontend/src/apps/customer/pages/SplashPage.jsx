@@ -23,9 +23,9 @@ export default function SplashPage() {
         setTable({ tableId: table.id, tableNumber: table.table_number })
         
         if (rememberMe && name) {
-          navigate(`/c/${tenantSlug}/menu/${table.id}`, { replace: true })
+          navigate(`/c/${tenantSlug}/menu/${table.hash}`, { replace: true })
         } else {
-          navigate(`/c/${tenantSlug}/menu/${table.id}/identify`, { replace: true })
+          navigate(`/c/${tenantSlug}/menu/${table.hash}/identify`, { replace: true })
         }
       } catch (error) {
         console.error('Failed to verify table from backend:', error)
@@ -74,7 +74,7 @@ export default function SplashPage() {
         </motion.div>
 
         <div className="text-center space-y-1">
-          <h1 className="font-heading font-extrabold text-3xl text-ink-primary">CaféOS</h1>
+          <h1 className="font-heading font-extrabold text-3xl text-ink-primary">CaféPOS</h1>
           <p className="text-ink-secondary text-sm">Pesan dengan mudah, bayar dengan cepat</p>
         </div>
 

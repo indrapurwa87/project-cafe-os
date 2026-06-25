@@ -48,7 +48,7 @@ export default function CashierLoginPage() {
           <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/25">
             <Monitor className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-heading text-2xl font-bold text-white">CaféOS Kasir</h1>
+          <h1 className="font-heading text-2xl font-bold text-white">CaféPOS Kasir</h1>
           <p className="text-slate-400 text-sm mt-1">Point of Sale — Login untuk melanjutkan</p>
         </div>
 
@@ -127,7 +127,7 @@ export default function CashierLoginPage() {
         {/* Footer */}
         <p className="text-center text-xs text-slate-600 mt-6">
           <Coffee className="w-3 h-3 inline mr-1" />
-          CaféOS Point of Sale v1.0
+          CaféPOS Point of Sale v1.0
         </p>
       </motion.div>
     </div>

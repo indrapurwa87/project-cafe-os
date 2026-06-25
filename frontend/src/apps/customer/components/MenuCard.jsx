@@ -19,11 +19,13 @@ export default function MenuCard({ item, onTap }) {
 
   return (
     <motion.div
-      whileTap={{ scale: 0.97 }}
-      onClick={onTap}
+      whileTap={item.is_available ? { scale: 0.97 } : {}}
+      onClick={item.is_available ? onTap : undefined}
       className={cn(
-        'card-hover cursor-pointer overflow-hidden flex flex-col',
-        !item.is_available && 'opacity-60'
+        'card-hover overflow-hidden flex flex-col',
+        item.is_available
+          ? 'cursor-pointer'
+          : 'opacity-50 grayscale cursor-not-allowed'
       )}
     >
       {/* Image */}

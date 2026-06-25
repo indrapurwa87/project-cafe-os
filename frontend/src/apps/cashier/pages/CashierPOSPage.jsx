@@ -46,7 +46,7 @@ export default function CashierPOSPage() {
 
   // Filter menu
   const filteredItems = useMemo(() => {
-    let items = menuItems.filter(i => i.is_available)
+    let items = menuItems
     if (selectedCategory !== 'all') {
       items = items.filter(i => i.category_id === selectedCategory)
     }
@@ -125,7 +125,7 @@ export default function CashierPOSPage() {
             <Monitor className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="font-heading font-bold text-sm">CaféOS Kasir</h1>
+            <h1 className="font-heading font-bold text-sm">CaféPOS Kasir</h1>
             <p className="text-xs text-slate-400">Point of Sale</p>
           </div>
         </div>
@@ -242,46 +242,60 @@ export default function CashierPOSPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filteredItems.map(item => {
                   const inCart = cart.items.find(ci => ci.menuItemId === item.id)
+                  const soldOut = !item.is_available
                   return (
                     <motion.button
                       key={item.id}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => cart.addItem({
+                      whileTap={soldOut ? {} : { scale: 0.97 }}
+                      onClick={soldOut ? undefined : () => cart.addItem({
                         menuItemId: item.id,
                         name: item.name,
                         price: item.price,
                         image: item.image_url
                       })}
-                      className={`relative bg-white rounded-xl border-2 overflow-hidden text-left transition-all hover:shadow-md group ${
-                        inCart ? 'border-emerald-400 shadow-emerald-100' : 'border-transparent shadow-sm'
+                      disabled={soldOut}
+                      className={`relative bg-white rounded-xl border-2 overflow-hidden text-left transition-all group ${
+                        soldOut
+                          ? 'border-transparent shadow-sm opacity-50 grayscale cursor-not-allowed'
+                          : inCart
+                            ? 'border-emerald-400 shadow-emerald-100 hover:shadow-md'
+                            : 'border-transparent shadow-sm hover:shadow-md'
                       }`}
                     >
                       {/* Image */}
-                      <div className="aspect-square bg-slate-100 overflow-hidden">
+                      <div className="aspect-square bg-slate-100 overflow-hidden relative">
                         {item.image_url ? (
                           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>
+                        )}
+                        {/* Sold out overlay */}
+                        {soldOut && (
+                          <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">Habis</span>
+                          </div>
                         )}
                       </div>
 
                       {/* Info */}
                       <div className="p-2.5">
                         <p className="font-semibold text-xs text-slate-800 leading-tight line-clamp-2">{item.name}</p>
-                        <p className="font-bold text-emerald-600 text-xs mt-1">{formatRupiah(item.price)}</p>
+                        <p className={`font-bold text-xs mt-1 ${soldOut ? 'text-slate-400 line-through' : 'text-emerald-600'}`}>{formatRupiah(item.price)}</p>
                       </div>
 
                       {/* Cart badge */}
-                      {inCart && (
+                      {inCart && !soldOut && (
                         <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
                           {inCart.qty}
                         </div>
                       )}
 
                       {/* Add indicator */}
-                      <div className="absolute top-2 left-2 w-6 h-6 bg-white/90 backdrop-blur rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow">
-                        <Plus className="w-3.5 h-3.5 text-emerald-600" />
-                      </div>
+                      {!soldOut && (
+                        <div className="absolute top-2 left-2 w-6 h-6 bg-white/90 backdrop-blur rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow">
+                          <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                        </div>
+                      )}
                     </motion.button>
                   )
                 })}
@@ -510,7 +524,7 @@ export default function CashierPOSPage() {
       {showSuccess && ReactDOM.createPortal(
         <div id="receipt-print-area">
           <div className="text-center mb-4">
-            <h2 className="text-base font-bold uppercase">CaféOS</h2>
+            <h2 className="text-base font-bold uppercase">CaféPOS</h2>
             <p className="text-[10px] text-slate-600">Jl. Pemuda No. 123, Semarang</p>
             <p className="text-[10px] text-slate-600">Telp: 0812-3456-7890</p>
           </div>
